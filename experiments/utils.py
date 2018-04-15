@@ -27,6 +27,15 @@ def generate_regression_curve_data(x_min=0, x_max=0.5, num_samples=1000):
 
     return x, y
 
+# Find the L1 or L2 norm between the predicted point and the true point
+def regression_error(x, y_pred, norm='L2'):
+    y_true = x + 0.3 * np.sin(2*np.pi*x) + 0.3 * np.sin(4*np.pi*x)
+
+    if norm == 'L2':
+        return np.linalg.norm(y_pred - y_true)
+    elif norm == 'L1':
+        return np.abs(y_pred - y_true)
+
 # Create a batch iterator over the given data
 def create_batch_iterator(X, Y, batch_size):
     i = 0
