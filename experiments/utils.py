@@ -10,7 +10,11 @@ def load_mnist():
     mnist_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'datasets')
     mnist = sklearn.datasets.fetch_mldata('MNIST original', data_home=mnist_path)
     X = mnist.data.astype(np.float32) / 126.
-    Y = mnist.target.astype(np.float32)
+    Y = mnist.target.astype(np.int32)
+
+    # converts labels into "indicator" vectors
+    I = np.eye(10, dtype=np.int32)
+    Y = I[Y]
 
     train_split = 20000. / mnist.data.shape[0]
     X_train, X_test, Y_train, Y_test = sklearn.model_selection.train_test_split(X, Y, test_size=train_split)
