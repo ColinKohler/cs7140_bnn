@@ -9,6 +9,9 @@ from autograd.misc.flatten import flatten
 import utils
 import nn
 
+import itertools as itt
+
+
 def initializer(args):
     return np.random.randn(*args)
 
@@ -31,8 +34,6 @@ def run_mnist_classification(config):
             activation_output=output)
     grad = autograd.grad(loss)
 
-    clip = 1.
-
     train_acc = list()
     test_acc = list()
     loss_acc = list()
@@ -41,15 +42,16 @@ def run_mnist_classification(config):
         batch_iterator = utils.create_batch_iterator(X_train, Y_train, config.batch_size)
         for X_batch, Y_batch in batch_iterator:
             gradients = grad(params, X_batch, Y_batch, forward)
-            gnorm = np.sqrt(np.square(flatten(gradients)[0]).sum())
-            gclip = clip / gnorm
 
-            for p, g in zip(params, gradients):
-                for j in range(2):
-                    if gclip < 1.:
-                        g[j][:] *= gclip
+            if config.clip is not None:
+                gnorm2 = np.square(flatten(gradients)[0]).sum()
+                if gnorm2 > config.clip ** 2:
+                    gclip = config.clip / np.sqrt(gnorm2)
+                    for g in itt.chain(*gradients):
+                        g[:] *= gclip
 
-                    p[j][:] -= g[j]
+            for p, g in zip(itt.chain(*params), itt.chain(*gradients)):
+                p[:] -= g
 
         l = loss(params, X_batch, Y_batch, forward)
         train_accuracy = utils.evaluate_accuracy()
@@ -71,6 +73,9 @@ if __name__ == '__main__':
             help='Number of hidden units per layer')
     parser.add_argument('--batch_size', type=int, default=128,
             help='Number of samples in a minibatch')
+    parser.add_argument('--clip', type=float, default=None,
+            help='Gradient clipping')
+    # TODO lr is unused
     parser.add_argument('--lr', type=float, default=0.1,
             help='Learning rate')
 
