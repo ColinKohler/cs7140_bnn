@@ -22,8 +22,9 @@ def loss(params, X, Y, forward):
 def run_mnist_classification(config):
     X_train, Y_train, X_val, Y_val, X_test, Y_test = utils.load_mnist()
     N, D = X_train.shape
+    _, C = Y_train.shape
 
-    layer_sizes = [D] + [config.num_hidden_units] * config.num_hidden_layers + [10]
+    layer_sizes = [D] + [config.num_hidden_units] * config.num_hidden_layers + [C]
     params = nn.new_params(layer_sizes, initializer=initializer)
 
     activation = nn.relu
