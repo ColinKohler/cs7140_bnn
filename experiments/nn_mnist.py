@@ -26,7 +26,7 @@ if __name__ == '__main__':
     params = nn.new_params(sizes, initializer=initializer)
 
     activation = nn.relu
-    activation_output = nn.norm
+    activation_output = nn.softmax
 
     forward = partial(
         nn.forward,

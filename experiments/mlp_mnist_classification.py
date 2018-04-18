@@ -24,7 +24,7 @@ def run_mnist_classification(config):
     params = nn.new_params(layer_sizes, initializer=initializer)
 
     activation = nn.relu
-    output = nn.norm #Softmax
+    output = nn.softmax
 
     forward = partial(nn.forward,
             activation=activation,

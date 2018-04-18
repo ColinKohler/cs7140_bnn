@@ -16,8 +16,8 @@ def relu(x):
     # return np.log1p(x)
 
 
-# norm
-def norm(x):
+# softmax output actionation
+def softmax(x):
     return np.exp(x - logsumexp(x, axis=1, keepdims=True))
 
 
