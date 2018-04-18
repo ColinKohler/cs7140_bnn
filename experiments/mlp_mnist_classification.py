@@ -34,9 +34,9 @@ def run_mnist_classification(config):
             activation_output=output)
     grad = autograd.grad(loss)
 
-    train_acc = list()
-    test_acc = list()
-    loss_acc = list()
+    train_errs = list()
+    test_errs = list()
+    losses = list()
     np.set_printoptions(formatter={'float_kind':lambda x: "%.2f" % x})
     for epoch in range(config.epochs):
         batch_iterator = utils.create_batch_iterator(X_train, Y_train, config.batch_size)
@@ -54,14 +54,13 @@ def run_mnist_classification(config):
                 p[:] -= g
 
         l = loss(params, X_batch, Y_batch, forward)
-        train_accuracy = utils.evaluate_accuracy()
-        test_accuracy = utils.evaluate_accuracy()
+        train_error = utils.mnist_error(params, X_train, Y_train, forward)
+        test_error = utils.mnist_error(params, X_test, Y_test, forward)
 
-        loss_acc.append(l)
-        train_acc.append(train_accuracy)
-        test_acc.append(test_accuracy)
-        print('Epoch:{} Loss:{} Train Accuracy:{} Test Accuracy:{}'
-                .format(epoch, l, train_accuracy, test_accuracy))
+        losses.append(l)
+        train_errs.append(train_error)
+        test_errs.append(test_error)
+        print(f'Epoch:{epoch:>3} \t; Loss:{l:3.5f} \t; Train Error:{100*train_error:>5.1f}% \t; Test Error:{100*test_error:>5.1f}%')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
