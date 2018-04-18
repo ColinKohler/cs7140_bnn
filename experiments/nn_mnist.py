@@ -7,14 +7,14 @@ from functools import partial
 import utils
 import nn
 
-
-import warnings
+# import warnings
 
 
 if __name__ == '__main__':
     # warnings.simplefilter('error', 'RuntimeWarning')
 
     initializer = np.zeros
+
     def initializer(args):
         return np.random.randn(*args)
         # return np.random.randn(*args) / np.prod(args)
@@ -28,9 +28,11 @@ if __name__ == '__main__':
     activation = nn.relu
     activation_output = nn.norm
 
-    forward = partial(nn.forward,
-            activation=activation,
-            activation_output=activation_output)
+    forward = partial(
+        nn.forward,
+        activation=activation,
+        activation_output=activation_output
+    )
 
     def loss(params, X, Y, forward):
         output, _ = forward(params, X)
@@ -43,6 +45,7 @@ if __name__ == '__main__':
     n_train = X.shape[0]
 
     idx = np.arange(n)
+
     def get_batch(X, Y, size):
         np.random.shuffle(idx)
         return X[idx[:size]], Y[idx[:size]]

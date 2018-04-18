@@ -35,7 +35,7 @@ def forward(params, X, activation, activation_output=None):
     layers = [None] * len(params)
     layers[0] = X
     for i, p in enumerate(params[:-1]):
-        layers[i+1] = activation(layers[i] @ p[0] + p[1])
+        layers[i + 1] = activation(layers[i] @ p[0] + p[1])
     output = activation_output(layers[-1] @ params[-1][0] + params[-1][1])
     return output, layers
 
@@ -43,7 +43,6 @@ def forward(params, X, activation, activation_output=None):
 if __name__ == '__main__':
     # example usage
     from functools import partial
-
 
     # initializer = np.ones
     # initializer = np.zeros
@@ -60,9 +59,11 @@ if __name__ == '__main__':
 
     activation = relu
     activation_output = None
-    forward = partial(forward,
-            activation=activation,
-            activation_output=activation_output)
+    forward = partial(
+        forward,
+        activation=activation,
+        activation_output=activation_output,
+    )
 
     x = np.array([1., 2.])
     y = np.array([0., 1.])
