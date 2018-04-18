@@ -1,29 +1,65 @@
 import argparse
-import numpy as np
+from functools import partial
+
+import autograd
+import autograd.numpy as np
+from autograd.misc.flatten import flatten
 
 # Our junk
 import utils
+import nn
+
+def initializer(args):
+    return np.random.randn(*args)
+
+def loss(params, X, Y, forward):
+    output, _ = forward(params, X)
+    return -(Y * np.log(output)).sum(axis=1).mean()
 
 def run_mnist_classification(config):
     X_train, Y_train, X_val, Y_val, X_test, Y_test = utils.load_mnist()
-    batch_iterator = utils.create_batch_iterator(X_train, Y_train, config.batch_size)
+    N, D = X_train.shape
+
+    layer_sizes = [D] + [config.num_hidden_units] * config.num_hidden_layers + [10]
+    params = nn.new_params(layer_sizes, initializer=initializer)
+
+    activation = nn.relu
+    output = nn.norm #Softmax
+
+    forward = partial(nn.forward,
+            activation=activation,
+            activation_output=output)
+    grad = autograd.grad(loss)
+
+    clip = 1.
 
     train_acc = list()
     test_acc = list()
+    loss_acc = list()
     np.set_printoptions(formatter={'float_kind':lambda x: "%.2f" % x})
     for epoch in range(config.epochs):
+        batch_iterator = utils.create_batch_iterator(X_train, Y_train, config.batch_size)
         for X_batch, Y_batch in batch_iterator:
-            # Train model
-            continue
+            gradients = grad(params, X_batch, Y_batch, forward)
+            gnorm = np.sqrt(np.square(flatten(gradients)[0]).sum())
+            gclip = clip / gnorm
 
-        loss = 0.
+            for p, g in zip(params, gradients):
+                for j in range(2):
+                    if gclip < 1.:
+                        g[j][:] *= gclip
+
+                    p[j][:] -= g[j]
+
+        l = loss(params, X_batch, Y_batch, forward)
         train_accuracy = utils.evaluate_accuracy()
         test_accuracy = utils.evaluate_accuracy()
 
+        loss_acc.append(l)
         train_acc.append(train_accuracy)
         test_acc.append(test_accuracy)
-        print('Epoch:{} Loss:{} Train Accuracy:{} Test Accuracy{}'
-                .format(epoch, loss, train_accuracy, test_accuracy))
+        print('Epoch:{} Loss:{} Train Accuracy:{} Test Accuracy:{}'
+                .format(epoch, l, train_accuracy, test_accuracy))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
