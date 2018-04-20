@@ -18,36 +18,36 @@ def initializer(args):
     return .05 * rnd.randn(*args)
 
 
-def mlp_loss(params, model, X, Y):
+def loss_mlp(params, model, X, Y):
     output = model.forward(params, X)
     return -(Y * np.log(output)).sum()
 
-def mlp_error(params, model, X, Y):
+def error_mlp(params, model, X, Y):
     ndata, _ = X.shape
     output = model.forward(params, X)
     return (output.argmax(axis=1) != Y.argmax(axis=1)).mean()
 
 
-def bnn_loss(params, model, X, Y, nsamples=1):
+def loss_bnn(params, model, X, Y, nsamples=1):
     wsamples = (model.sample_wparams(params) for _ in range(nsamples))
-    losses = (mlp_loss(wparams, model.mlp, X, Y) for wparams in wsamples)
+    losses = (loss_mlp(wparams, model.mlp, X, Y) for wparams in wsamples)
     return sum(losses)
 
-def bnn_error(params, model, X, Y, nsamples=1):
+def error_bnn(params, model, X, Y, nsamples=1):
     wsamples = (model.sample_wparams(params) for _ in range(nsamples))
-    errors = (mlp_error(wparams, model.mlp, X, Y) for wparams in wsamples)
+    errors = (error_mlp(wparams, model.mlp, X, Y) for wparams in wsamples)
     return sum(errors) / nsamples
 
 
 def factory(config):
     if config.model == 'mlp':
         modelcls = mlp.MLP
-        loss = mlp_loss
-        error = mlp_error
+        loss = loss_mlp
+        error = error_mlp
     elif config.model == 'bnn':
         modelcls = bnn.BNN
-        loss = partial(bnn_loss, nsamples=config.nsamples)
-        error = partial(bnn_error, nsamples=config.nsamples)
+        loss = partial(loss_bnn, nsamples=config.nsamples)
+        error = partial(error_bnn, nsamples=config.nsamples)
     else:
         raise ValueError(f'Invalid model name `{config.model}`.')
 
