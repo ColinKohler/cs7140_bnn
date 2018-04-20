@@ -47,8 +47,9 @@ def create_batch_iterator(X, Y, batch_size):
         i += batch_size
         yield X_batch, Y_batch
 
-# Evaluate the given model's error on the given data
-def mnist_error(params, X, Y, forward):
-    n, _ = X.shape
-    output, _ = forward(params, X)
-    return (output.argmax(axis=1) != Y.argmax(axis=1)).sum() / n
+# TODO should this and/or the loss be out or in models?
+# # Evaluate the given model's error on the given data
+# def mnist_error(params, X, Y, forward):
+#     n, _ = X.shape
+#     output, _ = forward(params, X)
+#     return (output.argmax(axis=1) != Y.argmax(axis=1)).sum() / n
