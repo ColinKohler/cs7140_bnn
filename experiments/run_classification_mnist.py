@@ -15,23 +15,61 @@ import bnn
 
 
 def initializer(args):
+    # return 2 * rnd.rand(*args) - 1
+    # return np.zeros(args) - 1
+    # return .05 * rnd.randn(*args)
+    # return .05 * rnd.randn(*args) - 1
     return .05 * rnd.randn(*args)
+    # return .001 * rnd.randn(*args)
+    # return .05 * rnd.randn(*args)
 
+def initializer_neg(args):
+    return .05 * rnd.randn(*args) - 10
 
 def loss_mlp(params, model, X, Y):
+    # return -np.log(output[Y.argmax(axis=1)]).sum()
     output = model.forward(params, X)
-    return -(Y * np.log(output)).sum()
+    return -np.sum(Y * np.log(output))
 
 def error_mlp(params, model, X, Y):
     ndata, _ = X.shape
     output = model.forward(params, X)
     return (output.argmax(axis=1) != Y.argmax(axis=1)).mean()
 
+def neglog_prior(wparams, pi, nlogs1, nlogs2):
+    logpi = np.log(pi)
+    log1mpi = np.log(1 - pi)
+    log2pi = np.log(2 * np.pi)
 
-def loss_bnn(params, model, X, Y, nsamples=1):
-    wsamples = (model.sample_wparams(params) for _ in range(nsamples))
-    losses = (loss_mlp(wparams, model.mlp, X, Y) for wparams in wsamples)
-    return sum(losses)
+    nll = 0.
+    for wA, wb in wparams:
+        nll += np.sum(np.logaddexp(
+            logpi - .5 * np.exp(2 * (np.log(wA) + nlogs1)) + nlogs1,
+            log1mpi - .5 * np.exp(2 * (np.log(wA) + nlogs2)) + nlogs2,
+        ) - .5 * log2pi)
+
+        nll += np.sum(np.logaddexp(
+            logpi - .5 * np.exp(2 * (np.log(wb) + nlogs1)) + nlogs1,
+            log1mpi - .5 * np.exp(2 * (np.log(wb) + nlogs2)) + nlogs2,
+        ) - .5 * log2pi)
+    return nll
+
+def loss_bnn(params, model, X, Y, pi, logs1, logs2, nsamples):
+    loss = 0.
+    for _ in range(nsamples):
+        wparams = model.sample_wparams(params)
+        # model prior
+        # loss += neglog_prior(wparams, pi, logs1, logs2)
+        # data likelihood
+        loss += loss_mlp(wparams, model.mlp, X, Y)
+        # variational likelihood
+        # loss += model.llk_wparams(params, wparams)
+    return loss
+
+
+#     wsamples = (model.sample_wparams(params) for _ in range(nsamples))
+#     losses = (loss_mlp(wparams, model.mlp, X, Y) for wparams in wsamples)
+#     return sum(losses)
 
 def error_bnn(params, model, X, Y, nsamples=1):
     wsamples = (model.sample_wparams(params) for _ in range(nsamples))
@@ -46,7 +84,11 @@ def factory(config):
         error = error_mlp
     elif config.model == 'bnn':
         modelcls = bnn.BNN
-        loss = partial(loss_bnn, nsamples=config.nsamples)
+        loss = partial(loss_bnn,
+                       pi=config.pi,
+                       logs1=config.neglog_sigma1,
+                       logs2=config.neglog_sigma2,
+                       nsamples=config.nsamples)
         error = partial(error_bnn, nsamples=config.nsamples)
     else:
         raise ValueError(f'Invalid model name `{config.model}`.')
@@ -66,7 +108,7 @@ def run_mnist_classification(config):
     activation = core.relu
     activation_output = core.softmax
     model = modelcls(layers, activation, activation_output)
-    params = model.new_params(initializer)
+    params = model.new_params(initializer, initializer_neg)
 
     grad = autograd.grad(loss)
 
@@ -94,7 +136,7 @@ def run_mnist_classification(config):
         losses.append(l)
         train_errs.append(train_error)
         test_errs.append(test_error)
-        print(f'Total -    Loss:{l:>6.2f}; Train Error:{100*train_error:>5.1f}% \t; Test Error:{100*test_error:>5.1f}%')
+        print(f'Epoch:{epoch:>3}   Loss:{l:>6.2f}; Train Error:{100*train_error:>6.2f}% \t; Test Error:{100*test_error:>6.2f}%')
 
 
 if __name__ == '__main__':
@@ -102,22 +144,22 @@ if __name__ == '__main__':
     parser.add_argument('model', type=str, choices=['mlp', 'bnn'])
     parser.add_argument('--epochs', type=int, default=100,
             help='Number of epochs to train classifier for')
-    parser.add_argument('--hidden_layers', type=int, nargs='+', default=[400, 400],
+    parser.add_argument('--hidden_layers', type=int, nargs='+', default=[800, 800],
             help='Number of neurons in each hidden layer')
     parser.add_argument('--batch_size', type=int, default=128,
             help='Number of samples in a minibatch')
-    parser.add_argument('--lr', type=float, default=1e-3,
+    parser.add_argument('--lr', type=float, default=1e-4,
             help='Learning rate')
 
     # BNN args
-    parser.add_argument('--nsamples', type=int, default=1,
+    parser.add_argument('--nsamples', type=int, default=5,
             help='Number of samples used in Bayes by Backprop')
-    parser.add_argument('--log_sigma1', type=float, default=.000001,
-            help='Log variance for the first gaussian prior on weights')
-    parser.add_argument('--log_sigma2', type=float, default=None,
-            help='Log variance for the second gaussian prior on weights')
-    parser.add_argument('--pi', type=float, default=None,
+    parser.add_argument('--pi', type=float, default=1/2,
             help='Amount to weight each gaussian prior in the scale mixture model')
+    parser.add_argument('--neglog_sigma1', type=float, default=1,
+            help='Log variance for the first gaussian prior on weights')
+    parser.add_argument('--neglog_sigma2', type=float, default=7,
+            help='Log variance for the second gaussian prior on weights')
 
     args = parser.parse_args()
     print('args:', args)

@@ -13,21 +13,32 @@ class BNN:
         self.mlp = mlp.MLP(layers, activation, activation_output)
 
     #  initializes and returns new set of parameters
-    def new_params(self, initializer):
+    def new_params(self, initializer, init2):
         mparams = self.mlp.new_params(initializer)
-        sparams = self.mlp.new_params(initializer)
-        return mparams, sparams
+        rparams = self.mlp.new_params(init2)
+        return mparams, rparams
 
-    def sample_wparams(self, params):
+    def sample_wparams(self, params, *, with_llks=False):
         wparams = []
-        for (mA, mb), (sA, sb) in zip(*params):
+        for (mA, mb), (rA, rb) in zip(*params):
+            sA = np.log1p(np.exp(rA))
+            sb = np.log1p(np.exp(rb))
             eA, eb = rnd.randn(*mA.shape), rnd.randn(*mb.shape)
-            eA *= .01
-            eb *= .01
-            vA, vb = np.logaddexp(0, sA), np.logaddexp(0, sb)
-            wA, wb = mA + vA * eA, mb + vb * eb
+            wA, wb = mA + sA * eA, mb + sb * eb
             wparams.append((wA, wb))
+
         return wparams
+
+    def llk_wparams(self, params, wparams):
+        llk = 0.
+        for (mA, mb), (rA, rb), (wA, wb) in zip(*params, wparams):
+            sA = np.log1p(np.exp(rA))
+            sb = np.log1p(np.exp(rb))
+            vA, vb = sA ** 2, sb ** 2
+            llk += np.sum(.5 * ((wA-mA)**2 / vA + np.log(2 * np.pi * vA)))
+            llk += np.sum(.5 * ((wb-mb)**2 / vb + np.log(2 * np.pi * vb)))
+        return llk
+
 
     # takes one gradient step
     def update(self, params, gradients, lr):
