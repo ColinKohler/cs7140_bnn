@@ -1,6 +1,7 @@
 import autograd
 import autograd.numpy as np
 from autograd.misc.flatten import flatten
+import tensorflow as tf
 
 import itertools as itt
 import more_itertools as mitt

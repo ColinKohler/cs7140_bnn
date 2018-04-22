@@ -14,16 +14,10 @@ import bnn
 
 
 def initializer(args):
-    # return 2 * rnd.rand(*args) - 1
-    # return np.zeros(args) - 1
-    # return .05 * rnd.randn(*args)
-    # return .05 * rnd.randn(*args) - 1
     return .05 * rnd.randn(*args)
-    # return .001 * rnd.randn(*args)
-    # return .05 * rnd.randn(*args)
 
 def initializer_neg(args):
-    return .05 * rnd.randn(*args) - 10
+    return .05 * rnd.randn(*args) - 5
 
 def loss_mlp(params, model, X, Y):
     # return -np.log(output[Y.argmax(axis=1)]).sum()
@@ -98,7 +92,7 @@ def factory(config):
 def run_mnist_classification(config):
     modelcls, loss, error = factory(config)
 
-    X_train, Y_train, X_val, Y_val, X_test, Y_test = utils.load_mnist()
+    X, Y_train, Y_test = utilds.generate_regression_curve_data(num_samples=1000)
     N, D = X_train.shape
     _, C = Y_train.shape
     print('N, D, C:', N, D, C)
@@ -107,7 +101,7 @@ def run_mnist_classification(config):
     activation = utils.relu
     activation_output = utils.softmax
     model = modelcls(layers, activation, activation_output)
-    params = model.new_params(initializer)
+    params = model.new_params(initializer, initializer_neg)
 
     grad = autograd.grad(loss)
 
