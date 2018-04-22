@@ -14,7 +14,7 @@ class MLP(nn.Module):
         self.activation_output = activation_output
 
     def forward(self, x):
-        for layer in self.layers:
+        for layer in list(self.layers)[:-1]:
             x = self.activation(layer(x))
-        x = self.activation_output(x, dim=1)
+        x = self.activation_output(self.layers[-1](x), dim=1)
         return x
