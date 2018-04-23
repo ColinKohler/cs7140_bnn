@@ -5,6 +5,7 @@ import autograd.numpy as np
 import autograd.numpy.random as npr
 import torch
 import torch.utils.data
+from numbers import Number
 
 # Load mnist dataset with preprocess and train/val/test split detailed in paper
 def load_mnist():
@@ -44,6 +45,27 @@ def load_mnist_torch(batch_size):
             test_dataset, batch_size=batch_size, shuffle=True)
 
     return N, D, C, train_loader, val_loader, test_loader
+
+def logsumexp(value, dim=None, keepdim=False):
+    """Numerically stable implementation of the operation
+
+    value.exp().sum(dim, keepdim).log()
+    """
+    # TODO: torch.max(value, dim=None) threw an error at time of writing
+    if dim is not None:
+        m, _ = torch.max(value, dim=dim, keepdim=True)
+        value0 = value - m
+        if keepdim is False:
+            m = m.squeeze(dim)
+        return m + torch.log(torch.sum(torch.exp(value0),
+                                       dim=dim, keepdim=keepdim))
+    else:
+        m = torch.max(value)
+        sum_exp = torch.sum(torch.exp(value - m))
+        if isinstance(sum_exp, Number):
+            return m + math.log(sum_exp)
+        else:
+            return m + torch.log(sum_exp)
 
 
 # Generate dummy regression data acourding to the following function:

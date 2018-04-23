@@ -2,23 +2,21 @@ import argparse
 from functools import partial
 import itertools as itt
 from tqdm import tqdm, trange
-
-import autograd
-import autograd.numpy as np
-import autograd.numpy.random as rnd
+import numpy as np
 
 import torch
-import torch.nn.functional as F
-from torch.autograd import Variable
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
+from torch.autograd import Variable
 
 # Our junk
 import utils
 import mlp_torch
 import bnn_torch
 
-def train(model, loader, N, optimizer, cuda=True):
+# Train model for 1 epoch
+def train(model, loader, N, optimizer, loss_fn, cuda=True):
     model.train()
     with tqdm(total=N) as pbar:
         for i, (x_batch, y_batch) in enumerate(loader):
@@ -26,9 +24,9 @@ def train(model, loader, N, optimizer, cuda=True):
                 x_batch, y_batch = x_batch.cuda(), y_batch.cuda()
             x_batch, y_batch = Variable(x_batch), Variable(y_batch)
             optimizer.zero_grad()
+            model.zero_grad()
 
-            output = model(x_batch)
-            loss = F.nll_loss(output, y_batch)
+            output, loss = loss_fn(model, x_batch, y_batch)
             loss.backward()
             optimizer.step()
 
@@ -36,7 +34,8 @@ def train(model, loader, N, optimizer, cuda=True):
             pbar.set_description(f'Batch:{i:>3}; Loss:{l:>6.2f}')
             pbar.update(len(x_batch))
 
-def test(model, loader, cuda=True):
+# Test model over the given dataset
+def test(model, loader, loss_fn, cuda=True):
     model.eval()
     loss = 0.
     correct = 0
@@ -45,46 +44,47 @@ def test(model, loader, cuda=True):
             x_batch, y_batch = x_batch.cuda(), y_batch.cuda()
         x_batch, y_batch = Variable(x_batch, volatile=True), Variable(y_batch)
 
-        output = model(x_batch)
-        loss += F.nll_loss(output, y_batch, size_average=False).data[0]
-        pred = output.data.max(1, keepdim=True)[1]
-        correct += pred.eq(y_batch.data.view_as(pred)).long().cpu().sum()
+        outputs, l = loss_fn(model, x_batch, y_batch)
+        loss += l.data[0]
+        for output in outputs:
+            pred = output.data.max(1, keepdim=True)[1]
+            correct += (pred.eq(y_batch.data.view_as(pred)).long().cpu().sum() / len(outputs))
 
     accuracy = 100. * correct / len(loader.dataset)
-    loss /= len(loader.dataset)
     return loss, accuracy
 
-def loss_bnn(model, X, Y, nsamples):
-    loss = 0.
-    for _ in range(nsamples):
-        output = model(X)
-        loss += F.nll_loss(output, Y).data[0]
-    return loss
-
-def factory(conifg):
+# Build various model components for either MLP or BNN
+def factory(config, nbatches):
     if config.model == 'mlp':
         model_class = mlp_torch.MLP
-        loss_fn = F.nll_loss
+        loss_fn = partial(mlp_torch.loss,
+                          loss_fn=F.nll_loss)
+        test_fn = test
     elif config.model == 'bnn':
-        model_class = bnn_torch.BNN
-        loss_fn = partial(loss_bnn,
-                          nsamples=config.nsamples)
+        model_class = partial(bnn_torch.BNN,
+                              pi=config.pi,
+                              logsigma1=np.exp(-config.neglog_sigma1),
+                              logsigma2=np.exp(-config.neglog_sigma2))
+        loss_fn = partial(bnn_torch.loss,
+                          loss_fn=F.nll_loss,
+                          nsamples=config.nsamples,
+                          nbatches=nbatches)
+        test_fn = test
     else:
         raise ValueError(f'Invalid model name `{config.model}`.')
 
-    return model_class, loss_fn
+    return model_class, loss_fn, test_fn
 
+# Main loop: calls train/test over a number of epochs
 def run_mnist_classification(config):
     N, D, C, train_loader, val_loader, test_loader = utils.load_mnist_torch(config.batch_size)
     print('N, D, C:', N, D, C)
 
+    model_class, loss_fn, test_fn = factory(config, len(train_loader))
     layers = [D] + config.hidden_layers + [C]
     activation = F.relu
     activation_output = F.log_softmax
-    if config.model == 'mlp':
-        model = mlp_torch.MLP(layers, activation, activation_output)
-    else:
-        model = bnn_torch.BNN(layers, activation, activation_output)
+    model = model_class(layers, activation, activation_output)
     model.cuda()
     optimizer = optim.SGD(model.parameters(), lr=config.lr)
 
@@ -93,9 +93,9 @@ def run_mnist_classification(config):
     losses = list()
     np.set_printoptions(formatter={'float_kind':lambda x: "%.2f" % x})
     for epoch in range(config.epochs):
-        train(model, train_loader, N, optimizer)
-        train_loss, train_accuracy = test(model, train_loader)
-        test_loss, test_accuracy = test(model, test_loader)
+        train(model, train_loader, N, optimizer, loss_fn)
+        train_loss, train_accuracy = test_fn(model, train_loader, loss_fn)
+        test_loss, test_accuracy = test_fn(model, test_loader, loss_fn)
 
         train_error = 100. - train_accuracy
         test_error = 100. - test_accuracy

@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 import more_itertools as mitt
 
@@ -18,3 +19,7 @@ class MLP(nn.Module):
             x = self.activation(layer(x))
         x = self.activation_output(self.layers[-1](x), dim=1)
         return x
+
+def loss(model, X, Y, loss_fn):
+    output = model(X)
+    return [output], loss_fn(output, Y, size_average=False)
