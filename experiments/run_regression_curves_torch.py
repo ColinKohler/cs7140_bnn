@@ -4,6 +4,7 @@ import itertools as itt
 from tqdm import tqdm, trange
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import norm
 
 import torch
 import torch.nn as nn
@@ -39,7 +40,9 @@ def train(model, loader, N, optimizer, loss_fn, cuda=True):
 def test(model, loader, loss_fn, cuda=True):
     model.eval()
     loss = 0.
-    correct = 0
+    l2_norm = 0
+    all_outputs = list()
+    all_inputs = list()
     for x_batch, y_batch in loader:
         if cuda:
             x_batch, y_batch = x_batch.cuda(), y_batch.cuda()
@@ -48,18 +51,18 @@ def test(model, loader, loss_fn, cuda=True):
         outputs, l = loss_fn(model, x_batch, y_batch)
         loss += l.data[0]
         for output in outputs:
-            pred = output.data.max(1, keepdim=True)[1]
-            correct += (pred.eq(y_batch.data.view_as(pred)).long().cpu().sum() / len(outputs))
+            l2_norm += np.linalg.norm(y_batch.data.cpu() - output.data.cpu()).sum() / len(outputs)
+            all_outputs.append(output.data.cpu().numpy())
+            all_inputs.append(x_batch)
 
-    accuracy = 100. * correct / len(loader.dataset)
-    return loss, accuracy
+    return all_inputs, all_outputs, loss, l2_norm / len(loader)
 
 # Build various model components for either MLP or BNN
 def factory(config, nbatches):
     if config.model == 'mlp':
         model_class = mlp_torch.MLP
         loss_fn = partial(mlp_torch.loss,
-                          loss_fn=F.nll_loss)
+                          loss_fn=F.smooth_l1_loss)
         test_fn = test
     elif config.model == 'bnn':
         model_class = partial(bnn_torch.BNN,
@@ -67,7 +70,7 @@ def factory(config, nbatches):
                               sigma1=0.75,
                               sigma2=0.1)
         loss_fn = partial(bnn_torch.loss,
-                          loss_fn=F.nll_loss,
+                          loss_fn=F.smooth_l1_loss,
                           nsamples=config.nsamples,
                           nbatches=nbatches)
         test_fn = test
@@ -77,79 +80,52 @@ def factory(config, nbatches):
     return model_class, loss_fn, test_fn
 
 # Main loop: calls train/test over a number of epochs
-def run_mnist_classification(config):
-    N, D, C, train_loader, val_loader, test_loader = utils.load_mnist_torch(config.batch_size)
+def run_regression_curves(config):
+    N, D, C, train_loader, val_loader, test_loader = utils.load_regression_curve_torch(config.batch_size)
+    extended_loader = utils.load_regression_curve_extended_torch(num_samples=config.batch_size, rep=10)
     print('N, D, C:', N, D, C)
 
     model_class, loss_fn, test_fn = factory(config, len(train_loader))
     layers = [D] + config.hidden_layers + [C]
     activation = F.relu
-    activation_output = partial(F.log_softmax, dim=1)
+    activation_output = utils.identity
     model = model_class(layers, activation, activation_output)
     model.cuda()
     optimizer = optim.SGD(model.parameters(), lr=config.lr)
 
-    train_errs = list()
-    test_errs = list()
+    train_norms = list()
+    test_norms = list()
     losses = list()
     np.set_printoptions(formatter={'float_kind':lambda x: "%.2f" % x})
     for epoch in range(config.epochs):
         train(model, train_loader, N, optimizer, loss_fn)
-        train_loss, train_accuracy = test_fn(model, train_loader, loss_fn)
-        test_loss, test_accuracy = test_fn(model, test_loader, loss_fn)
-
-        train_error = 100. - train_accuracy
-        test_error = 100. - test_accuracy
+        inputs, outputs, train_loss, train_norm = test_fn(model, train_loader, loss_fn)
+        inputs, outputs, test_loss, test_norm = test_fn(model, test_loader, loss_fn)
 
         losses.append(test_loss)
-        train_errs.append(train_error)
-        test_errs.append(test_error)
-        print(f'Epoch:{epoch:>3}   Loss:{test_loss:>6.2f}; Train Error:{train_error:>6.2f}% \t; Test Error:{test_error:>6.2f}%')
+        train_norms.append(train_norm)
+        test_norms.append(test_norm)
+        print(f'Epoch:{epoch:>3}   Loss:{test_loss:>6.2f}; Train L2 Norm:{train_norm:>6.2f} \t; Test L2 Norm:{test_norm:>6.2f}')
 
-    weights = list()
-    biases = list()
-    sigmas = list()
-    mus = list()
-    for i, layer in enumerate(model.layers):
-        W, b = layer.sample_weights()
-        mus.extend(layer.W_m.data.cpu().numpy().flatten().tolist())
-        sigmas.extend(np.log1p(np.exp(layer.W_r.data.cpu().numpy().flatten())).tolist())
-        #if type(layer) != nn.Dropout:
-        #    W = layer.weight
-        #    b = layer.bias
-        #    #if i == 0 or i == 1:
-        #    #    W = W*2.
-        #    #    b = b*2.
-        weights.extend(W.data.cpu().numpy().flatten().tolist())
-        biases.extend(b.data.cpu().numpy().flatten().tolist())
-        #import pdb;pdb.set_trace()
-        #show_weight_dist(layer.W_m.data.cpu().numpy()[0,0], np.log1p(np.exp(layer.W_r.data.cpu().numpy()[0,0])**2))
-        #show_weight_dist(layer.b_m.data.cpu().numpy()[0], np.log1p(np.exp(layer.b_r.data.cpu().numpy()[0])**2))
-    #    #print(f'Wight Mean: `{layer.W_m.data}`;    Bias Mean: `{layer.b_m.data}`')
-    #    #print(f'Wight Ro: `{layer.W_r.data}`;    Bias Ro: `{layer.b_r.data}`')
+    extended_loader1 = utils.load_regression_curve_extended_torch(x_min=0.0, x_max=0.5, num_samples=config.batch_size, rep=1)
+    for _ in range(5):
+        inputs, outputs, test_loss, test_norm = test_fn(model, extended_loader1, loss_fn)
+        plt.scatter(np.array(inputs).flatten(), np.array(outputs).flatten())
+        plt.show()
 
-    #weights = np.array(weights)
-    #biases = np.array(biases)
-    #np.save('network_weights/mlp_dropout_200_weights.npy', weights)
-    #np.save('network_weights/mlp_dropout_200_biases.npy', biases)
+    for _ in range(5):
+        inputs, outputs, test_loss, test_norm = test_fn(model, extended_loader, loss_fn)
+        plt.scatter(np.array(inputs).flatten(), np.array(outputs).flatten())
+        plt.show()
 
-    #train_errs = np.array(train_errs)
-    #test_errs = np.array(test_errs)
-    #np.save('network_weights/mlp_dropout_200_test_errs.npy', test_errs)
-    #np.save('network_weights/mlp_dropout_200_train_errs.npy', train_errs)
+    #for layer in model.layers:
+    #    show_weight_dist(layer.W_m.data.cpu().numpy()[0,0], np.log1p(np.exp(layer.W_r.data.cpu().numpy()[0,0])))
+    #    show_weight_dist(layer.b_m.data.cpu().numpy()[0], np.log1p(np.exp(layer.b_r.data.cpu().numpy()[0])))
+    #    print(f'Wight Mean: `{layer.W_m.data}`;    Bias Mean: `{layer.b_m.data}`')
+    #    print(f'Wight Ro: `{layer.W_r.data}`;    Bias Ro: `{layer.b_r.data}`')
 
-    mus = np.array(mus)
-    sigmas = np.array(sigmas)
-    signal_to_noise = np.sort(np.log(np.abs(mus)) - np.log(sigmas))
-    density = gaussian_kde(signal_to_noise)
-    xs = np.linspace(-5, 2, 1000)
-    plt.plot(xs, density(xs))
-    plt.show()
-
-from scipy.stats import norm, gaussian_kde
 def show_weight_dist(mean, variance):
     sigma = np.sqrt(variance)
-    print(sigma)
     x = np.linspace(mean - 4*sigma, mean + 4*sigma, 100)
     plt.plot(x, norm.pdf(x, mean, sigma))
     plt.show()
@@ -159,15 +135,15 @@ if __name__ == '__main__':
     parser.add_argument('model', type=str, choices=['mlp', 'bnn'])
     parser.add_argument('--epochs', type=int, default=100,
             help='Number of epochs to train classifier for')
-    parser.add_argument('--hidden_layers', type=int, nargs='+', default=[800, 800],
+    parser.add_argument('--hidden_layers', type=int, nargs='+', default=[10, 10],
             help='Number of neurons in each hidden layer')
-    parser.add_argument('--batch_size', type=int, default=128,
+    parser.add_argument('--batch_size', type=int, default=100,
             help='Number of samples in a minibatch')
     parser.add_argument('--lr', type=float, default=1e-4,
             help='Learning rate')
 
     # BNN args
-    parser.add_argument('--nsamples', type=int, default=5,
+    parser.add_argument('--nsamples', type=int, default=1,
             help='Number of samples used in Bayes by Backprop')
     parser.add_argument('--pi', type=float, default=1/2,
             help='Amount to weight each gaussian prior in the scale mixture model')
@@ -179,4 +155,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print('args:', args)
 
-    run_mnist_classification(args)
+    run_regression_curves(args)

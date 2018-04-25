@@ -139,7 +139,6 @@ def run_mnist_classification(config):
 
 
 if __name__ == '__main__':
-    np.random.seed(1)
     parser = argparse.ArgumentParser()
     parser.add_argument('model', type=str, choices=['mlp', 'bnn'])
     parser.add_argument('--epochs', type=int, default=100,

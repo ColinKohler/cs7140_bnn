@@ -10,7 +10,7 @@ import more_itertools as mitt
 from utils import logsumexp
 
 class BNN_Layer(nn.Module):
-    def __init__(self, d_input, d_output, pi, sigma1, sigma2, layer_num=0):
+    def __init__(self, d_input, d_output, pi, sigma1, sigma2):
         super(BNN_Layer, self).__init__()
         self.d_input = d_input
         self.d_output = d_output
@@ -24,22 +24,33 @@ class BNN_Layer(nn.Module):
 
         # Initialize gaussian/scale prior components
         self.pi = pi
-        self.sigma1 = Variable(torch.zeros(1)).cuda()
-        self.sigma1.data += float(sigma1)
-        self.sigma2 = Variable(torch.zeros(1)).cuda()
-        self.sigma2.data += float(sigma2)
+        self.sigma1 = sigma1
+        self.sigma2 = sigma2
 
         # Initialize log probabilities for p and q dists
         self.log_p, self.log_q = 0., 0.
 
         # Initializer the weights (TODO: This is probably bad)
-        self.W_m.data.normal_(0, 0.01)
-        self.W_r.data.normal_(-5, 0.01)
-        self.b_m.data.normal_(0, 0.01)
-        self.b_r.data.normal_(-5, 0.01)
+        self.W_m.data.normal_(0, 0.1)
+        self.W_r.data.normal_(-3, 0.01)
+        self.b_m.data.normal_(0, 0.1)
+        self.b_r.data.normal_(-3, 0.01)
 
     def forward(self, x):
         # Calculate weight and bais values from randomly sampled epsilons
+        sigma_W = torch.log1p(torch.exp(self.W_r))
+        sigma_b = torch.log1p(torch.exp(self.b_r))
+        W, b = self.sample_weights()
+
+        # Update log probabilities for p and q dists
+        self.log_p = self._calculate_log_p(W, b)
+        self.log_q = self._calculate_log_q(sigma_W, sigma_b, W, b)
+
+        # Return output based on sampled parameters
+        output = torch.mm(x, W) + b.expand(x.size()[0], self.d_output)
+        return output
+
+    def sample_weights(self):
         eps_W = Variable(torch.Tensor(self.d_input, self.d_output).normal_(0,1)).cuda()
         eps_b = Variable(torch.Tensor(self.d_output).normal_(0,1)).cuda()
         sigma_W = torch.log1p(torch.exp(self.W_r))
@@ -48,15 +59,11 @@ class BNN_Layer(nn.Module):
         W = self.W_m + sigma_W * eps_W
         b = self.b_m + sigma_b * eps_b
 
-        # Update log probabilities for p and q dists
-        self.log_p = self._calculate_log_p(W, b)
-        self.log_q = self._calculate_log_q(sigma_W, sigma_b, W, b)
+        return W, b
 
-        # Return output based on sampled parameters
-        output = torch.mm(x, W) + b.expand(x.size()[0], self.d_output)
-        #output.register_hook(lambda x: print(x.data[0,0:10]))
-        return output
-
+    #def _calculate_log_p(self, W, b):
+    #    return self._calculate_log_gaussian(W, 0, self.sigma1).sum() + \
+    #           self._calculate_log_gaussian(b, 0, self.sigma1).sum()
     def _calculate_log_p(self, W, b):
         log_p = 0.
         log_p += logsumexp(
@@ -77,11 +84,13 @@ class BNN_Layer(nn.Module):
         return float(-0.5 * np.log(2 * np.pi)) - torch.log(sigma) - (x - mu)**2 / (2 * sigma**2)
 
 class BNN(nn.Module):
-    def __init__(self, layer_dims, activation, activation_output, pi, logsigma1, logsigma2):
+    def __init__(self, layer_dims, activation, activation_output, pi, sigma1, sigma2):
         super(BNN, self).__init__()
         self.layers = nn.ModuleList()
-        for i, (d_in, d_out) in enumerate(mitt.pairwise(layer_dims)):
-            self.layers.append(BNN_Layer(d_in, d_out, pi, logsigma1, logsigma2, layer_num=i))
+        self.sigma1 = Variable(torch.Tensor([float(sigma1)]), requires_grad=False).cuda()
+        self.sigma2 = Variable(torch.Tensor([float(sigma2)]), requires_grad=False).cuda()
+        for d_in, d_out in mitt.pairwise(layer_dims):
+            self.layers.append(BNN_Layer(d_in, d_out, pi, self.sigma1, self.sigma2))
 
         self.activation = activation
         self.activation_output = activation_output
@@ -91,7 +100,8 @@ class BNN(nn.Module):
         for i,layer in enumerate(list(self.layers)[:-1]):
             x = self.activation(layer(x))
 
-        x = self.activation_output(self.layers[-1](x), dim=1)
+        x = self.activation_output(self.layers[-1](x))
+        #x = self.layers[-1](x)
         return x
 
     # Get log p and log q dists by summing over each layer
@@ -128,6 +138,6 @@ def loss(model, X, Y, loss_fn, nsamples, nbatches):
 
     # Loss
     KL = (avg_log_q - avg_log_p)
-    loss = (KL / float(nbatches)) + avg_neg_log_likelihood
+    loss = ((KL / float(nbatches)) + avg_neg_log_likelihood) / 128.
 
     return outputs, loss
