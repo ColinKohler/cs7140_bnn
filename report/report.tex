@@ -125,8 +125,30 @@ variational parameters in the BNN these variances will be quite large. Thus,
 when we sample the weights from these parameters they will be large which can
 lead to a unstable network.
 
-\subsection{Classification}
-\paragraph{Data --- MNIST}
+\subsection{Classification --- MNIST}
+We trained and tested networks of various sizes on the MNIST digits
+dataset\cite{} which consists of $70,000$ images of size 28 by 28 pixels.
+As we were comparing our results to the paper which introduced Bayes by 
+Backprop, we followed the same preprocessing steps as they did and 
+preprocessed the images by divinging the pixel values by $126$. The networks
+in question consisted of two hidden layers of rectified linear units (ReLU)
+and a log softmax output layer with $10$ outputs, representing the probability
+that the given image is that digit. Again in order to compare our results to
+that of the original work, we trained on $50,000$ images, tested on
+$10,000$ images, and used the last $10,000$ images as a validation set.
+
+While in the originial work the authors ran cross validation to select the best
+hyperparameters, we did not have the time or computational resources to run this
+costly operation and resorted to hand optimizing the hyperparameters instead.
+For our BNN, we ended up using a learning rate of $0.1$, a minibatch size of 
+$128$, and averaged over $1$ sample. We used the spike-slab prior detailed in
+section \ref{bayes_by_backprop} with $\pi = 0.25$, $\sigma_1 = 0.75$, and 
+$\sigma_2 = 0.1$. For the simple feedforward network and the network with 
+dropout, we used a learning rate of $0.001$ and a minibatch size of $128$.
+The dropout rate was the standard $0.5$. Although we tested networks of various
+sizes, the results listed below come from training two-layer networks with
+$400$ hidden units in each layer.
+
 \paragraph{Results}
 
 \subsection{Regression}
