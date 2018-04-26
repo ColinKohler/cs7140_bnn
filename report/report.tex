@@ -6,6 +6,12 @@
 \usepackage[margin=3cm]{geometry}
 \usepackage[hidelinks]{hyperref}
 
+\usepackage{bm}
+\usepackage{cleveref}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{todonotes}
+
 \setlength{\fboxsep}{0.05\textwidth}
 
 \newcommand{\commentEq}[1]{%
@@ -36,7 +42,13 @@
 \end{minipage}}
 \bigskip
 
+\newcommand\Aset{{\mathcal{A}}}
+\newcommand\Xset{{\mathcal{X}}}
+
 \newcommand\RR{{\mathbb{R}}}
+
+\newcommand\Ind{{\mathbb{I}}}
+\newcommand\Exp{{\mathbb{E}}}
 
 \section{Introduction}
 A well known problem with artificial netural networks is their tendency to 
@@ -93,7 +105,7 @@ Laplace distribution, then we will have L1 regularization.
 
 \subsection{Black Box Variational Inference}
 
-\section{Bayes by Backprop} \label{bayes_by_backprop}
+\section{Bayes by Backprop}\label{sec:bayes_by_backprop}
 
 \section{Experiments}
 In order to test the preformance of the Bayes by Backprob algorithm, we
@@ -110,11 +122,11 @@ implementations is hosted on Github at \url{https://github.com/ColinKohler/
 cs7140_bnn}. As a note to readers, while we were able to create our own 
 implementations of these networks using NumPy and Autograd, which can also
 be found at the above git repository, they ended up being too slow as they had
-to be run on the CPU. Therefor, we recommend using a deep learning library in
+to be run on the CPU\@. Therefor, we recommend using a deep learning library in
 order to allow for faster computation using GPUs. 
 
 The PyTorch implementations are fairly straight forward and follow the 
-algorithm detailed in section \ref{bayes_by_backprop} with one important 
+algorithm detailed in \cref{sec:bayes_by_backprop} with one important 
 additional detail. When initializing the parameters for the variance of the 
 weights (the $\rho$ parameters) in the BNN, we had to set them to a small
 negative number. Our best results came from sampling these parameters from
@@ -135,42 +147,142 @@ lead to a unstable network.
 
 \subsection{Contextual Bandits}
 
-Contextual Bandits (CB) is a standard problem domain type from the field of
-Reinforcement Learning (RL), and can be interpreted as either an extension of
-Multi-Armed Bandits (MAB), or a precursor to full-blown Markov Decision
-Processes (MDP).
+Contextual Bandits (CB) are a standard problem from the field of reinforcement
+learning which can be interpreted as either an extension of Multi-Armed Bandits
+(with the introduction of contexts/states), or a restriction of fully
+observable Markov Decision Processes (without the agent's ability to influence
+the context/state generative process).  A CB agent iteratively receives
+a \emph{context} $\bm x\in\Xset$, and is subsequently prompted to select an
+\emph{action} from a predefined set $\bm a\in\Aset$.  The agent then receives
+a real \emph{reward} $\bm r\in\RR$ sampled from an unknown stationary
+distribution $\bm r\sim P(\bm r\mid \bm x, \bm a)$, before receiving a new
+independent context and repeating the process for a given (potentially
+indetermined) amount of time steps.  The goal of the agent is that of
+maximizing the long term average of all the received rewards $\Exp\left[\bm
+r\right]$.  
 
-% The agent receives a i.d.d.\ contexts sampled from an unknown distribution
-% $P(x)$.
-
-% In a CB problem, the agent receives a \emph{context} $x\in\RR^d$ sampled from
-% an unknown distribution $P(x)$.
-
-% The general CB problem is as follows:  The CB agent receives a \emph{context}
-% $x\in\RR^d$;  This process is repeated either indefinitely or for a fixed
-% number of time steps (the horizon);  the objective is that of maximizing the
-% long-term average of all received rewards.
-
-% At each time step, the CB agent receives a \emph{context} $x\in\RR^d$
-
-% The CB problem consists in the usual
-
-The methods for solving CB problems can be roughly split into three
+Agents typically start out with very limited prior knowledge concerning the
+process dynamics (the context or reward distributions).  As a consequence, good
+strategies for the maximization of the long-term expected rewards necessarily
+involve the (locally sub-optimal) sub-goal of gathering more information about
+the process itself.  This notion is know as the \emph{exploration/exploitation
+trade-off}, and is a fundamental principle which will determine the success of
+a CB agent.  Viewing CB agents from the perspective of how they implement the
+exploration/exploitation trade-off, we can roughly split them into three
 categories:
 %
-\begin{itemize}
+\begin{description}
   %
-  \item Non-Bayesian
+  \item[Non-Bayesian ---]  This type of approach learns a point-estimate of the
+    expected return associated with the context-action pair $(\bm x, \bm a)$.
+    These methods learn to model the information necessary for exploitative
+    purposes, but inherently lack the means to implement an explorative
+    strategy.  As a consequence, they are paired with an independent
+    explorative strategy (typically $\epsilon$-greedy) which occasionally
+    selects random actions.
   %
-  \item Bayesian (Optimal)
+  \item[Bayesian (Optimal) ---]  This type of approach learns a model of the
+    full conditional distribution $P(\bm r\mid \bm x, \bm a)$, and uses it to
+    implement long-term optimal strategies which plan multiple steps ahead.
+    While this approach typically obtains the best performance, it is also the
+    hardest to define and implement.
   %
-  \item Bayesian (Heuristic)
-  %
-\end{itemize}
+  \item[Bayesian (Heuristic) ---]  This type of approach also requires
+    a conditional model over rewards, but implement simpler action-selection
+    strategies which, albeit still dependent on the model's learned uncertainty,
+    provide fewer guarantees compared to Basyesian-optimal strategies.  
 
-\paragraph{Data --- Mushroom Domain}
+    If the model uncertainties are appropriately learned, this type of
+    approach typically performs better than non-Bayesian ones due to the fact that
+    the explration rate becomes dependent on the model uncertainty (rather than
+    constant) and that the exploration targets the more promising actions (rather
+    than being uniform across all of them).
+  %
+\end{description}
 
-\paragraph{Results}
+To demonstrate the fact that the uncertainty learned by Bayes-by-Backprop is
+appropriate for a pluritude of tasks, the authors propose to use Thompson
+sampling---one of the simplest yet most effective Bayesian non-optimal
+approaches---to showcase that the resulting agent's performance is better than
+other standard non-Bayesian approaches.  In Thompson sampling, each action is
+selected with the same likelihood that it is the optimal action under the
+current reward model\footnote{Note that, while Thompson sampling is a very
+sensible approach, it is \emph{not} a Basyesian optimal strategy due to the
+fact that exploration is a byproduct of the model uncertainty, rather than an
+explicit consideration made to maximize long-term returns.}.  
+
+\paragraph{Data --- Mushroom Domain} The Mushroom Data Set\footnote{Mushroom
+Data Set: \url{https://archive.ics.uci.edu/ml/datasets/mushroom}.} contains
+8124 instances corresponding to 23 species of North American mushrooms
+described in terms of 23 discrete attributes, one of which indicates whether
+the mushroom is toxic or edible, and the other 22 of which are related to their
+shape, size, color, population, habitat, etc.
+
+The context is created by concatenating the one-hot encoding of the 22
+attributes, resulting in a context $\bm x\in \{0, 1\}{}^{117}$.  The binary
+variable $\bm y\in\{0, 1\}$ is used to denote whether the mushroom is edible,
+whereas the action set $\Aset = \{0, 1\}$ indicates whether the agent will eat
+the mushroom.  The rewards are produced as follows
+(Note that, while it is possible to obtain a better reward by eating a toxic
+mushroom due to luck, in average it is better to avoid it.)
+
+\begin{center}
+\begin{tabular}{ccl}
+  $\bm y$ & $\bm a$ & $\bm r$ \\ 
+  \toprule
+  --- & avoid & $0$ (Deterministic) \\
+  edible & eat & $5$ (Deterministic) \\
+  toxic & eat & Categorical\@($\{5, -35\}$; $p=\{0.5, 0.5\}$) \\  
+\end{tabular}
+\end{center}
+
+In this experimental setup, the authors train a NN on the regression problem of
+predicting the expected reward corresponding to a context-action pair $(\bm x,
+\bm a)$.  
+Because a BNN trained via Bayes-by-Backprop provides
+uncertainty measures, the proposed model is paired with Thompson sampling,
+while the baselines consist of standard NNs, trained via Backpropagation, and
+paired with greedy, $.05$-greedy and $.1$-greedy action-selection strategies.
+
+
+\paragraph{Results} 
+
+The performance of a CB agent can be measured in terms of how much
+\emph{regret} it accumulates over time.  The regret corresponding to a single
+interaction is defined as the difference between the obtained reward, and the
+reward which would have been obtained by an oracle who knows the mushroom's
+toxicity.  In this domain, the oracle would always eat an edible mushroom
+(receiving reward $5$), and always avoid a toxic one (receiving reward $0$).
+The resulting regret function is:
+%
+\begin{equation}
+  %
+  \operatorname{Regret}(\bm r, \bm y) = \bm r - 5 \, \Ind\left[ \bm
+  y = 1 \right]
+  %
+\end{equation}
+
+\Cref{fig:cb_cumregret} depicts the cumulative regrets obtained by the
+non-Bayesian CB agents and the one trained with Bayes-by-Backprop.  
+
+While we were able (with a caveat, explained soon) to implement the
+non-Bayesian agents and confirm similar results as those reported in
+\cref{fig:cb_cumregret}, we were unfortunately unable to do the same for the
+Bayesian agent trained via Bayes-by-Backprop.
+
+\todo[inline]{Finish caveat and description}
+
+
+\begin{figure}
+  %
+  \centering\includegraphics[width=.5\textwidth]{figures/cb_cumregret.png}
+  %
+  \caption{Cumulative regret obtained by non-Bayesian CB agents, and the BNN
+  agent trained via Bayes-by-Backprop.  Figure taken directly
+  from~\cite{blarg}.}\label{fig:cb_cumregret}
+  %
+\end{figure}
+
 
 \section{Conclusions}
 
