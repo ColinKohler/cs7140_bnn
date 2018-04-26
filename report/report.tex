@@ -93,10 +93,37 @@ Laplace distribution, then we will have L1 regularization.
 
 \subsection{Black Box Variational Inference}
 
-
-\section{Bayes by Backprop}
+\section{Bayes by Backprop} \label{bayes_by_backprop}
 
 \section{Experiments}
+In order to test the preformance of the Bayes by Backprob algorithm, we
+implemented a Bayesian neural network (BNN), both from scratch and with PyTorch,
+and trained it on various tasks using Bayes by Backprop. We then tested its
+preformance against a plain feedforward neural network with no regularization
+and an additional feedforward neural network with dropout layers. All three
+of these neural networks were traing using minibatch stocastic gradient descent
+on the same data.
+
+The results listed below were generated using our PyTroch implemntations of 
+Bayesian neural networks and feedforward neural networks. The code for these
+implementations is hosted on Github at \url{https://github.com/ColinKohler/
+cs7140_bnn}. As a note to readers, while we were able to create our own 
+implementations of these networks using NumPy and Autograd, which can also
+be found at the above git repository, they ended up being too slow as they had
+to be run on the CPU. Therefor, we recommend using a deep learning library in
+order to allow for faster computation using GPUs. 
+
+The PyTorch implementations are fairly straight forward and follow the 
+algorithm detailed in section \ref{bayes_by_backprop} with one important 
+additional detail. When initializing the parameters for the variance of the 
+weights (the $\rho$ parameters) in the BNN, we had to set them to a small
+negative number. Our best results came from sampling these parameters from
+a normal distribution with a mean of $-3$ and variance of $0.01$. The reason
+for this atypically initialization is that while we want to initialize the
+weights in our neural network to small values, if we do this for the 
+variational parameters in the BNN these variances will be quite large. Thus,
+when we sample the weights from these parameters they will be large which can
+lead to a unstable network.
 
 \subsection{Classification}
 \paragraph{Data --- MNIST}
