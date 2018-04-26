@@ -39,7 +39,23 @@
 \newcommand\RR{{\mathbb{R}}}
 
 \section{Introduction}
+A well known problem with artificial netural networks is their tendency to 
+overfit their training data. This overfitting results in a extremely low 
+error on the training data and a large error on the test data. More concretely,
+we can state that the network has become overly confident about the amount of
+uncertainty in the training data and therfor makes predictions on the test
+data which are unrealisticly optimistic. There are two main techiniques used
+to combat this problem: eary stopping and regularization. 
 
+Early stopping is the most naive method to prevent overfitting and simply 
+involves stopping the network's training once the test error has begun to
+increase. The second technique, regularization, involves modifying the loss 
+function by adding a penalty term. Through the addition of this penalty, the
+network is forced to learn a more general model of the data thereby avoiding
+overfitting. In this report we will implement and test a regularization 
+technique known as \textit{Bayes by Backprop}\cite{} which utilizes 
+variational Bayesian learning to introduce uncertainty in the weight of the 
+neural network.
 \subsection{Background}
 
 \subsubsection{Artificial Neural Networks}
