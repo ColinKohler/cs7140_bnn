@@ -36,6 +36,8 @@
 \end{minipage}}
 \bigskip
 
+\newcommand\RR{{\mathbb{R}}}
+
 \section{Introduction}
 
 \subsection{Background}
@@ -48,8 +50,51 @@
 \section{Experiments}
 
 \subsection{Classification}
+\paragraph{Data --- MNIST}
+\paragraph{Results}
+
 \subsection{Regression}
+\paragraph{Data --- Synthetic Data}
+\paragraph{Results}
+
 \subsection{Contextual Bandits}
+
+Contextual Bandits (CB) is a standard problem domain type from the field of
+Reinforcement Learning (RL), and can be interpreted as either an extension of
+Multi-Armed Bandits (MAB), or a precursor to full-blown Markov Decision
+Processes (MDP).
+
+% The agent receives a i.d.d.\ contexts sampled from an unknown distribution
+% $P(x)$.
+
+% In a CB problem, the agent receives a \emph{context} $x\in\RR^d$ sampled from
+% an unknown distribution $P(x)$.
+
+% The general CB problem is as follows:  The CB agent receives a \emph{context}
+% $x\in\RR^d$;  This process is repeated either indefinitely or for a fixed
+% number of time steps (the horizon);  the objective is that of maximizing the
+% long-term average of all received rewards.
+
+% At each time step, the CB agent receives a \emph{context} $x\in\RR^d$
+
+% The CB problem consists in the usual
+
+The methods for solving CB problems can be roughly split into three
+categories:
+%
+\begin{itemize}
+  %
+  \item Non-Bayesian
+  %
+  \item Bayesian (Optimal)
+  %
+  \item Bayesian (Heuristic)
+  %
+\end{itemize}
+
+\paragraph{Data --- Mushroom Domain}
+
+\paragraph{Results}
 
 \section{Conclusions}
 
