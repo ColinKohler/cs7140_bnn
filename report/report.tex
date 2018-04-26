@@ -56,10 +56,43 @@ overfitting. In this report we will implement and test a regularization
 technique known as \textit{Bayes by Backprop}\cite{} which utilizes 
 variational Bayesian learning to introduce uncertainty in the weight of the 
 neural network.
-\subsection{Background}
 
-\subsubsection{Artificial Neural Networks}
-\subsubsection{Black Box Variational Inference}
+\subsection{Artificial Neural Networks}
+Before discussing Bayes by Backprop, we must take a slight deviation from
+the norm to view neural networks in a more probablistic manner. A neural 
+network is typically viewed as a collection of connected units, each with 
+their own weight, which takes some input signal and produces an output
+signal by passing it through these units. Learning is then acheived by 
+using gradient descent to optimize these weights with respect to some loss
+function. 
+
+We will formalize this notition by defining a neural network as a probablistic
+model, $P(y|x,w)$ where $x \in \mathcal{R}^P, y \in \mathcal{Y}$. Using this 
+model, we can view neural networks as a function which assigns a probability
+to each possible outcome $y$ given some input $x$ through the use of the set
+of weights $w$. These weights are still learned through the use of gradient 
+descent however we can now view this learning as the maximum likelihood 
+estimate (MLE) of the weights given some data $D=(X,Y)$:
+\begin{align*}
+  w^{MLE} &= \arg\max_w \log P(D|w) \\ 
+  &= \arg\max_w \sum_i \log P(y_i|x_i, w) 
+\end{align*}
+
+As Bayes by Backprop is a regularization technique we have to expand upon this
+estimate to include regularization by introducing a prior on the weights $w$ 
+and then finding the maximum a posteriori (MAP) weights:
+\begin{align*}
+  w^{MAP} &= \arg\max_w \log P(w|D) \\
+  &= \arg\max_w \log P(D|w) + \log P(w) 
+\end{align*}
+Depending on the distribution of the prior placed on $w$ we can get different
+types of regularization. If $P(w)$ is a gaussian, then we will have L2 
+regularization, which is also known as weight decay. If $P(w)$ is a
+Laplace distribution, then we will have L1 regularization.
+
+
+\subsection{Black Box Variational Inference}
+
 
 \section{Bayes by Backprop}
 
