@@ -1,0 +1,56 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}	% Para caracteres en español
+\usepackage{amsmath,amsthm,amsfonts,amssymb,amscd}
+\usepackage{fullpage}
+\usepackage{setspace}
+\usepackage[margin=3cm]{geometry}
+\usepackage[hidelinks]{hyperref}
+
+\setlength{\fboxsep}{0.05\textwidth}
+
+\newcommand{\commentEq}[1]{%
+  \text{\phantom{(#1)}} \tag{#1}
+}
+\geometry{margin=1in, headsep=0.25in}
+
+\begin{document}
+\setcounter{section}{0}
+\thispagestyle{empty}
+
+\noindent\fbox{\begin{minipage}{0.9\textwidth}
+  \begin{center}
+    \section*{CS 7140: Advanced Machine Learning}
+	\subsection*{Project Report:  Weight Uncertainty in Neural Networks}
+  \end{center}
+  
+  \noindent\textbf{Instructor}
+  \smallskip
+  
+  Jan-Willem van de Meent (\url{j.vandemeent@northeastern.edu})\\
+  
+  \noindent\textbf{Students}
+  \smallskip
+
+  Colin Kohler (\url{kohler.c@husky.neu.edu})\\
+  Andrea Baisero (\url{baisero.a@husky.neu.edu})
+\end{minipage}}
+\bigskip
+
+\section{Introduction}
+
+\subsection{Background}
+
+\subsubsection{Artificial Neural Networks}
+\subsubsection{Black Box Variational Inference}
+
+\section{Bayes by Backprop}
+
+\section{Experiments}
+
+\subsection{Classification}
+\subsection{Regression}
+\subsection{Contextual Bandits}
+
+\section{Conclusions}
+
+\end{document}
