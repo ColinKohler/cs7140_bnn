@@ -125,8 +125,8 @@ divergence between the variational approximation and the target conditional,
   % &= \arg\min_\theta \KL\left( q(\bm z; \theta) \mid\mid P(\bm z) \right)
   % + \Exp_{q(\bm; \theta)}\left[ -\log P(\bm y\mid \bm z) \right] \\
   %
-  &= \arg\min_\theta \Exp_{q(\bm z; \theta)}\left[ \underbrace{ \log q(\bm z;
-  \theta) - \log P(\bm z) -\log P(\bm y\mid \bm z) }_{f(\bm y, \bm z; \theta)}
+  &= \arg\min_\theta \Exp_{q(\bm z; \theta)}\left[ \underbrace{\log q(\bm z;
+  \theta) - \log P(\bm z) -\log P(\bm y\mid \bm z)}_{f(\bm y, \bm z; \theta)}
   \right] \label{eq:VI}
   %
 \end{align}
@@ -185,7 +185,7 @@ substantially less-than-ideal for the purpose of performing gradient descent.
 
 The reparameterization trick is an algebraic manipulation which simplifies the
 differentiation and avoids introducing the score function, which is the source
-of the high variance in REINFORCE.  The reparameterization is available
+of the high variance in REINFORCE\@.  The reparameterization is available
 whenever it is possible to reformulate the process of sampling from the
 proposal distribution $\bm z\sim q(\bm z; \theta)$ as a deterministic function
 $\bm z(\epsilon; \theta)$ of an independently sampled auxiliary variable
@@ -204,7 +204,7 @@ that the differentiation operator can move inside the expectation unscattered:
   %
 \end{align}
 
-\section{Bayes by Backprop} \label{sec:bayes_by_backprop}
+\section{Bayes by Backprop}\label{sec:bayes_by_backprop}
 
 The authors propose to use variational inference to obtain a Bayesian treatment
 of neural networks.  The latent variables of a NN architecture are its weights
@@ -246,18 +246,18 @@ following steps:
 \begin{algorithm}
 \caption{Stochastic Gradient Descent with Bayes-by-Backprop}
 \begin{algorithmic}[1]
-  \Repeat
-  \State Reset $\Delta_\mu \gets 0$
-  \State Reset $\Delta_\rho \gets 0$
-  \For {$s = 1, \ldots, S$}
-  \State Sample $\epsilon \gets \mathcal{N}(0, I)$
-  \State Compute $w \gets \mu + \sigma \circ \epsilon$
-  \State Compute $\nabla_w f(w; \theta)$ using standard Backpropagation
-  \State Update $\Delta_\mu \gets \Delta_\mu + \nabla_w f(w; \theta) + \nabla_\mu f(w; \theta)$
-  \State Update $\Delta_\rho \gets \Delta_\mu + \nabla_w f(w; \theta) \frac{\epsilon}{1+\exp(-\rho)} + \nabla_\rho f(w; \theta)$
-  \EndFor
-  \State Update $\mu \gets \mu - \alpha \Delta_\mu / S$
-  \State Update $\rho \gets \rho - \alpha \Delta_\rho / S$
+  \Repeat\
+  \State\ Reset $\Delta_\mu \gets 0$
+  \State\ Reset $\Delta_\rho \gets 0$
+  \For\ {$s = 1, \ldots, S$}
+  \State\ Sample $\epsilon \gets \mathcal{N}(0, I)$
+  \State\ Compute $w \gets \mu + \sigma \circ \epsilon$
+  \State\ Compute $\nabla_w f(w; \theta)$ using standard Backpropagation
+  \State\ Update $\Delta_\mu \gets \Delta_\mu + \nabla_w f(w; \theta) + \nabla_\mu f(w; \theta)$
+  \State\ Update $\Delta_\rho \gets \Delta_\mu + \nabla_w f(w; \theta) \frac{\epsilon}{1+\exp(-\rho)} + \nabla_\rho f(w; \theta)$
+  \EndFor\
+  \State\ Update $\mu \gets \mu - \alpha \Delta_\mu / S$
+  \State\ Update $\rho \gets \rho - \alpha \Delta_\rho / S$
   \Until{Convergence}
 \end{algorithmic}
 \end{algorithm}
@@ -317,17 +317,20 @@ $128$, and averaged over $1$ sample. We used the spike-slab prior detailed in
 $\sigma_2 = 0.1$. For the simple feedforward network and the network with 
 dropout, we used a learning rate of $0.001$ and a minibatch size of $128$.
 The dropout rate was the standard $0.5$. Although we tested networks of various
-sizes, the results listed below come from training two-layer networks with
+sizes, the results listed below come from training 2-layer networks with
 $400$ hidden units in each layer.
 
 \begin{figure}[H]
   %
-  \centering\includegraphics[width=.45\textwidth]{figures/test_error_compare.png}
-  \centering\includegraphics[width=.45\textwidth]{figures/test_error_compare_paper.png}
+  \centering
   %
-  \caption{Left: Test error on MNIST using our implementation (2-layers of 400 units).
-  Right: Test error on MNIST as detailed in~\cite{blundell} (2-layers of 1200 units).}
-  \label{fig:mnist_test_error}
+  \includegraphics[width=.45\textwidth]{figures/test_error_compare.png}
+  %
+  \includegraphics[width=.45\textwidth]{figures/test_error_compare_paper.png}
+  %
+  \caption{Left: Test error on MNIST using our implementation (2 layers of 400
+  units).  Right: Test error on MNIST as detailed in~\cite{blundell} (2 layers
+  of 1200 units).}\label{fig:mnist_test_error}
   %
 \end{figure}
  
@@ -350,7 +353,7 @@ in~\cite{blundell}. This along with the overall lower test error in the plot
 from~\cite{blundell} can be explained due to the original work using cross
 validaton to opimize the hyperparameters whereas our hyperparameters are
 certainly not optimal. The last thing of note here, is that while out BNN never
-got a lower test error than that of the MLP with dropout, Blundell et al. had
+got a lower test error than that of the MLP with dropout, Blundell et al.\ had
 to run their BNN for $400$ epochs before this occured. As our BNN showed no
 sign of overfitting at $200$ epochs we can expect it would eventually out
 preform the MLP with dropout given enough time.
@@ -369,34 +372,45 @@ implementation was correct as it closely mimics the result in~\cite{blundell}.
 
 \begin{figure}
   %
-  \centering\includegraphics[width=.6\textwidth]{figures/weight_density_compare.png}
+  \centering
+  %
+  \includegraphics[width=.6\textwidth]{figures/weight_density_compare.png}
   %
   \caption{Histogram of the trained weights of the three types of network we
-  compared in \cref{fig:mnist_test_error}}
-  \label{fig:mnist_weight_density}
+  compared in \cref{fig:mnist_test_error}}\label{fig:mnist_weight_density}
   %
 \end{figure}
 
 \subsection{Regression --- Synthetic Data}
-Moving on from classification, we wanted to ensure that our BNN implementation 
+
+Moving on from classification, we wanted to ensure that our BNN implementation
 was able to work on a regression task in addition to the classification task
-detailed above. Once again following the work done in~\cite{blundell}, we 
+detailed above. Once again following the work done in~\cite{blundell}, we
 generated training data from the following non-linear function:
+%
 \begin{align*}
-  y = x + 0.3 \sin(2\pi (x &+ \epsilon)) + 0,3 \sin(4\pi (x + \epsilon)) + \epsilon \\
+  %
+  y = x + 0.3 \sin(2\pi (x &+ \epsilon)) + 0,3 \sin(4\pi (x + \epsilon))
+  + \epsilon \\
+  %
   \epsilon &\sim \mathcal{N}(0, 0.02)
+  %
 \end{align*}
-\Cref{fig:reg_syth_data} shows this function both with and without noise.
-Note that we only generated data in the range $x\in [0, 0.5]$.
+%
+\Cref{fig:reg_syth_data} shows this function both with and without noise.  Note
+that we only generated data in the range $x\in [0, 0.5]$.
 
 \begin{figure}[H]
   %
-  \centering\includegraphics[width=.45\textwidth]{figures/regression_curve.png}
-  \centering\includegraphics[width=.45\textwidth]{figures/regression_curve_with_noise.png}
+  \centering
+  %
+  \includegraphics[width=.45\textwidth]{figures/regression_curve.png}
+  %
+  \includegraphics[width=.45\textwidth]{figures/regression_curve_with_noise.png}
   %
   \caption{Left: Noise free non-linear function we generated test data from.
-  Right: Noisy non-linear function we used as training data.}
-  \label{fig:reg_syth_data}
+  Right: Noisy non-linear function we used as training
+  data.}\label{fig:reg_syth_data}
   %
 \end{figure}
 
@@ -404,31 +418,32 @@ Note that we only generated data in the range $x\in [0, 0.5]$.
 
 We trained two different networks on the synthetic data detailed above: our BNN
 and a simple MLP without dropout. Both of these networks consisted of
-two-layers of $100$ ReLUs and were trained using SGD to minimize L1 loss.
-\Cref{fig:reg_extended} shows the functions generated by these two networks
-once they were trained for $50$ epochs. We can see from this figure that the
-MLP will always predict the same output over mutliple test runs whereas the BNN
-has a range of possible outputs. It is important to note here that while both
-networks were able to fit the function well in the area where the was training
-data, between $x=0.0$ and $x=0.5$, the MLP makes the assumption that the data
-outside this range will follow the training data whereas the BNN prefers to
-allow many possible extrapolations. This experiment nicely illustrates our
-earlier point that a standard neural network can be overly confident about the
-uncertainity in the training data whereas our BNN is able to realize it is
-unsure about the value of the function outside the training data and perfers to
-let the function wander.
+2 layers of $100$ ReLUs and were trained using SGD to minimize L1 loss.
+  \Cref{fig:reg_extended} shows the functions generated by these two networks
+  once they were trained for $50$ epochs. We can see from this figure that the
+  MLP will always predict the same output over mutliple test runs whereas the
+  BNN has a range of possible outputs. It is important to note here that, while
+  both networks were able to fit the function well in the area where there was
+  training data ($x\in[0, 0.5]$), the MLP makes the assumption that the data
+  outside this range will follow the training data whereas the BNN prefers to
+  allow many possible extrapolations. This experiment nicely illustrates our
+  earlier point that a standard neural network can be overly confident about
+  the uncertainity in the training data whereas our BNN is able to realize it
+  is unsure about the value of the function outside the training data and
+  perfers to let the function wander.
 
 \begin{figure}
   %
-  \centering\includegraphics[width=.45\textwidth]{figures/reg_bnn_extended.png}
-  \centering\includegraphics[width=.45\textwidth]{figures/reg_mlp_extended.png}
+  \centering
+  %
+  \includegraphics[width=.45\textwidth]{figures/reg_bnn_extended.png}
+  %
+  \includegraphics[width=.45\textwidth]{figures/reg_mlp_extended.png}
   %
   \caption{Regression on noisy non-linear function with interquatile ranges.
-  Red lines are the median predictions and blue areas are the interquantile range.
-	The dotted greeen lines indicate the range of x-values from which the training
-  data was generated.
-  Left: BNN, Right: MLP.}
-  \label{fig:reg_extended}
+  Red lines are the median predictions and blue areas are the interquantile
+  range.  The dotted greeen lines indicate the range of x-values from which the
+  training data was generated.  Left: BNN, Right: MLP.}\label{fig:reg_extended}
   %
 \end{figure}
 
@@ -563,7 +578,9 @@ Bayesian agent trained via Bayes-by-Backprop.
 
 \begin{figure}
   %
-  \centering\includegraphics[width=.5\textwidth]{figures/cb_cumregret.png}
+  \centering
+  %
+  \includegraphics[width=.5\textwidth]{figures/cb_cumregret.png}
   %
   \caption{Cumulative regret obtained by non-Bayesian CB agents, and the BNN
   agent trained via Bayes-by-Backprop.  Figure taken directly
