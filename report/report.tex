@@ -56,17 +56,17 @@ overfit their training data. This overfitting results in a extremely low
 error on the training data and a large error on the test data. More concretely,
 we can state that the network has become overly confident about the amount of
 uncertainty in the training data and therfor makes predictions on the test
-data which are unrealisticly optimistic. There are two main techiniques used
-to combat this problem: eary stopping and regularization. 
+data which are unrealisticly optimistic. The main method used to combat 
+this problem is known as regularization. 
 
-Early stopping is the most naive method to prevent overfitting and simply 
+The most naive method of regularization is known as early stopping which simply
 involves stopping the network's training once the test error has begun to
-increase. The second technique, regularization, involves modifying the loss 
+increase. More complex forms of regularization involve modifying the loss 
 function by adding a penalty term. Through the addition of this penalty, the
 network is forced to learn a more general model of the data thereby avoiding
 overfitting. In this report we will implement and test a regularization 
 technique known as \textit{Bayes by Backprop}\cite{blundell} which utilizes 
-variational Bayesian learning to introduce uncertainty in the weight of the 
+variational Bayesian learning to introduce uncertainty on the weights of the 
 neural network.
 
 \subsection{Artificial Neural Networks}
@@ -90,9 +90,9 @@ estimate (MLE) of the weights given some data $D=(X,Y)$:
   &= \arg\max_w \sum_i \log P(y_i|x_i, w) 
 \end{align*}
 
-As Bayes by Backprop is a regularization technique we have to expand upon this
-estimate to include regularization by introducing a prior on the weights $w$ 
-and then finding the maximum a posteriori (MAP) weights:
+As Bayes by Backprop is a regularization technique, we have to expand upon this
+estimate to include regularization. This is done by introducing a prior on the
+weights $w$ and then finding the maximum a posteriori (MAP) weights:
 \begin{align*}
   w^{MAP} &= \arg\max_w \log P(w|D) \\
   &= \arg\max_w \log P(D|w) + \log P(w) 
@@ -112,9 +112,11 @@ In order to test the preformance of the Bayes by Backprob algorithm, we
 implemented a Bayesian neural network (BNN), both from scratch and with PyTorch,
 and trained it on various tasks using Bayes by Backprop. We then tested its
 preformance against a plain feedforward neural network with no regularization
-and an additional feedforward neural network with dropout layers. All three
-of these neural networks were traing using minibatch stocastic gradient descent
-on the same data.
+and an additional feedforward neural network with dropout layers. Plain 
+feedforward nerual networks are also sometime referred to as multi-layer
+perceptrons (MLP); we will use the two terms interchangeably here on out.
+All three of these neural networks were traing using minibatch stocastic 
+gradient descent on the same data.
 
 The results listed below were generated using our PyTroch implemntations of 
 Bayesian neural networks and feedforward neural networks. The code for these
@@ -122,7 +124,7 @@ implementations is hosted on Github at \url{https://github.com/ColinKohler/
 cs7140_bnn}. As a note to readers, while we were able to create our own 
 implementations of these networks using NumPy and Autograd, which can also
 be found at the above git repository, they ended up being too slow as they had
-to be run on the CPU\@. Therefor, we recommend using a deep learning library in
+to be run on the CPU\@. We therefor recommend using a deep learning library in
 order to allow for faster computation using GPUs. 
 
 The PyTorch implementations are fairly straight forward and follow the 
@@ -133,7 +135,7 @@ negative number. Our best results came from sampling these parameters from
 a normal distribution with a mean of $-3$ and variance of $0.01$. The reason
 for this atypically initialization is that while we want to initialize the
 weights in our neural network to small values, if we do this for the 
-variational parameters in the BNN these variances will be quite large. Thus,
+variational parameters in the BNN, these variances will be quite large. Thus,
 when we sample the weights from these parameters they will be large which can
 lead to a unstable network.
 
@@ -164,11 +166,11 @@ $400$ hidden units in each layer.
 \paragraph{Results}
 The first experiment we preformed was simply to train and test our BNN on the 
 MNIST dataset and compare the results to that of \cite{blundell}. This allowed us
-to ensure that our implemenation of both the BNN and the simple multilayer
-perceptrons (MLPs) were correct and got comparable results. Figure
-\ref{fig:mnist_test_error} shows the test error for the three different models
-detailed above: a BNN, a standard MLP, and a MLP with dropout. While our 
-results are not identical to that of \cite{blundell}, they are very similar. 
+to ensure that our implemenation of both the BNN and the simple MLPs were correct
+and got comparable results. Figure \ref{fig:mnist_test_error} shows the test
+error for the three different models detailed above: a BNN, a standard MLP,
+and a MLP with dropout. While our results are not identical to that of 
+\cite{blundell}, they are very similar. 
 
 In both plots the vanilla MLP is the first to converge and then hovers around
 the same test error for the rest of the training epochs. Both the MLP with
