@@ -64,7 +64,7 @@ increase. More complex forms of regularization involve modifying the loss
 function by adding a penalty term. Through the addition of this penalty, the
 network is forced to learn a more general model of the data thereby avoiding
 overfitting. In this report we will implement and test a regularization 
-technique known as \textit{Bayes by Backprop}\cite{blundell} which utilizes 
+technique known as \textit{Bayes by Backprop}~\cite{blundell} which utilizes 
 variational Bayesian learning to introduce uncertainty on the weights of the 
 neural network.
 
@@ -296,23 +296,24 @@ when we sample the weights from these parameters they will be large which can
 lead to a unstable network.
 
 \subsection{Classification --- MNIST}
+
 We trained and tested networks of various sizes on the MNIST digits
-dataset\cite{mnist} which consists of $70,000$ images of size 28 by 28 pixels.
-As we were comparing our results to the paper which introduced Bayes by 
-Backprop, we followed the same preprocessing steps as they did and 
-preprocessed the images by divinging the pixel values by $126$. The networks
-in question consisted of two hidden layers of rectified linear units (ReLU)
-and a log softmax output layer with $10$ outputs, representing the probability
-that the given image is that digit. Again in order to compare our results to
-that of the original work, we trained on $50,000$ images, tested on
-$10,000$ images, and used the last $10,000$ images as a validation set.
+dataset~\cite{mnist} which consists of $70,000$ images of size 28 by 28 pixels.
+As we were comparing our results to the paper which introduced Bayes by
+Backprop, we followed the same preprocessing steps as they did and preprocessed
+the images by divinging the pixel values by $126$.  The networks in question
+consisted of two hidden layers of rectified linear units (ReLU) and a log
+softmax output layer with $10$ outputs, representing the probability that the
+given image is that digit. Again in order to compare our results to that of the
+original work, we trained on $50,000$ images, tested on $10,000$ images, and
+used the last $10,000$ images as a validation set.
 
 While in the originial work the authors ran cross validation to select the best
 hyperparameters, we did not have the time or computational resources to run this
 costly operation and resorted to hand optimizing the hyperparameters instead.
 For our BNN, we ended up using a learning rate of $0.1$, a minibatch size of 
 $128$, and averaged over $1$ sample. We used the spike-slab prior detailed in
-section \ref{sec:bayes_by_backprop} with $\pi = 0.25$, $\sigma_1 = 0.75$, and 
+\cref{sec:bayes_by_backprop} with $\pi = 0.25$, $\sigma_1 = 0.75$, and 
 $\sigma_2 = 0.1$. For the simple feedforward network and the network with 
 dropout, we used a learning rate of $0.001$ and a minibatch size of $128$.
 The dropout rate was the standard $0.5$. Although we tested networks of various
@@ -325,52 +326,53 @@ $400$ hidden units in each layer.
   \centering\includegraphics[width=.45\textwidth]{figures/test_error_compare_paper.png}
   %
   \caption{Left: Test error on MNIST using our implementation (2-layers of 400 units).
-  Right: Test error on MNIST as detailed in \cite{blundell} (2-layers of 1200 units).}
+  Right: Test error on MNIST as detailed in~\cite{blundell} (2-layers of 1200 units).}
   \label{fig:mnist_test_error}
   %
 \end{figure}
  
 
 \paragraph{Results}
-The first experiment we preformed was simply to train and test our BNN on the 
-MNIST dataset and compare the results to that of \cite{blundell}. This allowed us
-to ensure that our implemenation of both the BNN and the simple MLPs were correct
-and got comparable results. Figure \ref{fig:mnist_test_error} shows the test
-error for the three different models detailed above: a BNN, a standard MLP,
-and a MLP with dropout. While our results are not identical to that of 
-\cite{blundell}, they are very similar. 
+
+The first experiment we preformed was simply to train and test our BNN on the
+MNIST dataset and compare the results to that of~\cite{blundell}. This allowed
+us to ensure that our implemenation of both the BNN and the simple MLPs were
+correct and got comparable results. \Cref{fig:mnist_test_error} shows the
+test error for the three different models detailed above: a BNN, a standard
+MLP, and a MLP with dropout. While our results are not identical to those of
+Blundell et al.\, they are very similar. 
 
 In both plots the vanilla MLP is the first to converge and then hovers around
 the same test error for the rest of the training epochs. Both the MLP with
 dropout and the BNN eventually get a lower test error than the standard MLP
-with our BNN taking a significant amount more time than the BNN in 
-\cite{blundell}. This along with the overall lower test error in the plot from
-\cite {blundell} can be explained due to the original work using cross validaton
-to opimize the hyperparameters whereas our hyperparameters are certainly not
-optimal. The last thing of note here, is that while out BNN never got a lower
-test error than that of the MLP with dropout, Blundell et al. had to run their
-BNN for $400$ epochs before this occured. As our BNN showed no sign of 
-overfitting at $200$ epochs we can expect it would eventually out preform the 
-MLP with dropout given enough time.
+with our BNN taking a significant amount more time than the BNN
+in~\cite{blundell}. This along with the overall lower test error in the plot
+from~\cite{blundell} can be explained due to the original work using cross
+validaton to opimize the hyperparameters whereas our hyperparameters are
+certainly not optimal. The last thing of note here, is that while out BNN never
+got a lower test error than that of the MLP with dropout, Blundell et al. had
+to run their BNN for $400$ epochs before this occured. As our BNN showed no
+sign of overfitting at $200$ epochs we can expect it would eventually out
+preform the MLP with dropout given enough time.
 
 In our next experiment we wanted to ensure that the BNN was actually learning 
 a distribution for each weight in the network and was not simply converging to
 a mean value with a standard deviation close to zero. In order to do this we
 collected the weights for all the units in the networks, sampling weights 
 from the variational posterior in the BNN and using the test weights for the 
-MLP with dropout, and then created the density histogram in Figure 
-\ref{fig:mnist_weight_density}. From this histogram we can see that our BNN
+MLP with dropout, and then created the density histogram in
+\cref{fig:mnist_weight_density}. From this histogram we can see that our BNN
 has both the widest range of weights and also the least weights centered at
 zero when compared to the two other models. This confirmed that the BNN was
 learning a distribution over weights and also confirmed that our 
-implementation was correct as it closely mimics the result in \cite{blundell}.
+implementation was correct as it closely mimics the result in~\cite{blundell}.
 
 \begin{figure}
   %
   \centering\includegraphics[width=.6\textwidth]{figures/weight_density_compare.png}
   %
   \caption{Histogram of the trained weights of the three types of network we
-  compared in Figure \ref{fig:mnist_test_error}}
+  compared in \cref{fig:mnist_test_error}}
   \label{fig:mnist_weight_density}
   %
 \end{figure}
@@ -378,14 +380,14 @@ implementation was correct as it closely mimics the result in \cite{blundell}.
 \subsection{Regression --- Synthetic Data}
 Moving on from classification, we wanted to ensure that our BNN implementation 
 was able to work on a regression task in addition to the classification task
-detailed above. Once again following the work done in \cite{blundell}, we 
+detailed above. Once again following the work done in~\cite{blundell}, we 
 generated training data from the following non-linear function:
 \begin{align*}
   y = x + 0.3 \sin(2\pi (x &+ \epsilon)) + 0,3 \sin(4\pi (x + \epsilon)) + \epsilon \\
   \epsilon &\sim \mathcal{N}(0, 0.02)
 \end{align*}
-Figure \ref{fig:reg_syth_data} shows this function both with and without noise.
-Note that we only generated data between $x=0.0$ and $x=0.5$.
+\Cref{fig:reg_syth_data} shows this function both with and without noise.
+Note that we only generated data in the range $x\in [0, 0.5]$.
 
 \begin{figure}[H]
   %
@@ -399,21 +401,22 @@ Note that we only generated data between $x=0.0$ and $x=0.5$.
 \end{figure}
 
 \paragraph{Results} 
+
 We trained two different networks on the synthetic data detailed above: our BNN
-and a simple MLP without dropout. Both of these networks consisted of two-layers 
-of $100$ ReLUs and were trained using SGD to minimize L1 loss. Figure
-\ref{fig:reg_extended} shows the functions generated by these two networks
+and a simple MLP without dropout. Both of these networks consisted of
+two-layers of $100$ ReLUs and were trained using SGD to minimize L1 loss.
+\Cref{fig:reg_extended} shows the functions generated by these two networks
 once they were trained for $50$ epochs. We can see from this figure that the
 MLP will always predict the same output over mutliple test runs whereas the BNN
-has a range of possible outputs. It is important to note here that while both 
+has a range of possible outputs. It is important to note here that while both
 networks were able to fit the function well in the area where the was training
-data, between $x=0.0$ and $x=0.5$, the MLP makes the assumption that the 
-data outside this range will follow the training data whereas the BNN prefers
-to allow many possible extrapolations. This experiment nicely illustrates our 
-earlier point that a standard neural network can be overly confident about 
-the uncertainity in the training data whereas our BNN is able to realize it 
-is unsure about the value of the function outside the training data and
-perfers to let the function wander.
+data, between $x=0.0$ and $x=0.5$, the MLP makes the assumption that the data
+outside this range will follow the training data whereas the BNN prefers to
+allow many possible extrapolations. This experiment nicely illustrates our
+earlier point that a standard neural network can be overly confident about the
+uncertainity in the training data whereas our BNN is able to realize it is
+unsure about the value of the function outside the training data and perfers to
+let the function wander.
 
 \begin{figure}
   %
@@ -497,7 +500,7 @@ explicit consideration made to maximize long-term returns.}.
 
 \todo[inline]{Move thompson inside bayesian heuristic paragraph?}
 
-\paragraph{Data --- Mushroom Domain} The Mushroom Data Set\cite{mushroom}
+\paragraph{Data --- Mushroom Domain} The Mushroom Data Set~\cite{mushroom}
 contains 8124 instances corresponding to 23 species of North American mushrooms
 described in terms of 23 discrete attributes, one of which indicates whether
 the mushroom is toxic or edible, and the other 22 of which are related to their
