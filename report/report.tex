@@ -9,6 +9,9 @@
 \usepackage{bm}
 \usepackage{cleveref}
 \usepackage{graphicx}
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+\usepackage{algorithmicx}
 \usepackage{booktabs}
 \usepackage{todonotes}
 
@@ -42,13 +45,9 @@
 \end{minipage}}
 \bigskip
 
-\newcommand\Aset{{\mathcal{A}}}
-\newcommand\Xset{{\mathcal{X}}}
-
-\newcommand\RR{{\mathbb{R}}}
-
 \newcommand\Ind{{\mathbb{I}}}
 \newcommand\Exp{{\mathbb{E}}}
+\newcommand\KL{{\operatorname{KL}}}
 
 \section{Introduction}
 A well known problem with artificial netural networks is their tendency to 
@@ -79,7 +78,7 @@ using gradient descent to optimize these weights with respect to some loss
 function. 
 
 We will formalize this notition by defining a neural network as a probablistic
-model, $P(y|x,w)$ where $x \in \RR^P, y \in \mathcal{Y}$. Using this 
+model, $P(y|x,w)$ where $x \in \mathbb{R}^P, y \in \mathcal{Y}$. Using this 
 model, we can view neural networks as a function which assigns a probability
 to each possible outcome $y$ given some input $x$ through the use of the set
 of weights $w$. These weights are still learned through the use of gradient 
@@ -103,11 +102,164 @@ regularization, which is also known as weight decay. If $P(w)$ is a
 Laplace distribution, then we will have L1 regularization.
 
 
-\subsection{Black Box Variational Inference}
+\subsection{Variational Inference}
+
+% Variational Inference (VI) indicates a family of optimization-based inference
+% methods which work by approximating the true conditional probability of the
+% variables of interest with a
+
+Let $P(\bm y, \bm z)$ denote a generative model of joint observed variables
+$\bm y$ and latent variables $\bm z$, and let the conditional distribution
+$P(\bm z\mid \bm y)$ be the target of the inference.  Variational Inference
+(VI) indicates a family of optimization-based methods which approximate the
+target distribution with a parameterized model $q(\bm z; \theta)$ known as the
+\emph{variational} approximation;  In VI, the inference process is driven by
+the minimization of the Kullback-Leibler (KL) divergence between the
+variational approximation and the target conditional,
+%
+\begin{align}
+  %
+  \theta^* &= \arg\min_\theta \KL\left( q(\bm z; \theta) \mid\mid P(\bm z\mid
+  \bm y) \right) \\
+  %
+  % &= \arg\min_\theta \KL\left( q(\bm z; \theta) \mid\mid P(\bm z) \right)
+  % + \Exp_{q(\bm; \theta)}\left[ -\log P(\bm y\mid \bm z) \right] \\
+  %
+  &= \arg\min_\theta \Exp_{q(\bm z; \theta)}\left[ \underbrace{ \log q(\bm z; \theta) - \log
+  P(\bm z) -\log P(\bm y\mid \bm z) }_{f(\bm y, \bm z; \theta)} \right] \label{eq:VI}
+  %
+\end{align}
+
+\todo[inline]{Maybe define ELBO more explicitly?}
+
+To further simplify the inference process, the variational model is often
+designed to satisfy the mean-field assumption, by which each individual latent
+variable is modeled independently $q(\bm z; \theta) = \prod_k q(\bm z_k;
+\theta_k)$.  With the mean-field assumption in place, and when the joint
+generative model and the variational approximation satisfy certain (non-mild)
+conjugacy conditions, the VI objective in \cref{eq:VI} can be optimized very
+efficiently via a sequence of analytical updates on the variational parameters.
+\paragraph{Stochastic Variational Inference}  Depending on the amount data
+which is available or required for the model at hand, it may be more efficient
+(or necessary) to use a stochastic optimization approach, whereby only
+a randomly selected subset of the variational parameters are updated at any
+given iteration; this is called Stochastic Variational Inference (SVI).
+
+\paragraph{Black Box Variational Inference}  Black Box Variational Inference
+(BBVI) is a further extension to addresses the variational inference
+minimization problem problem when the conjugacy conditions are not satisfied.
+In such a situation, it is not possible to derive precise analytical updates on
+the variational parameters.  Instead, BBVI uses the gradients of the ELBO to
+update the parameters using (Stochastic) Gradient Descent.
+
+\subsection{Gradient Estimation}
+
+BBVI requires the differentiation of an objective in the form of an expectation
+whose distribution is itself dependent on the differentiation variables.  While
+it is generally possible to estimate the gradient of such an expectation using
+the likelihood ratio trick (a.k.a. REINFORCE) followed by Monte Carlo
+estimation,
+%
+\begin{align}
+  %
+  \nabla_\theta \Exp_{q(\bm z;\theta)}\left[ f(\bm y, \bm z; \theta) \right] &=
+  \Exp_{q(\bm z;\theta)}\left[ \nabla_\theta \log q(\bm z;\theta) f(\bm y, \bm
+  z; \theta) + \nabla_\theta f(\bm y, \bm z; \theta) \right] \nonumber \\
+  %
+  &\approx \frac{1}{S} \sum_{s=1}^S \nabla_\theta \log q(\bm z_s; \theta) f(\bm
+  y, \bm z_s; \theta) + \nabla_\theta f(\bm y, \bm z_s; \theta) \,, \bm z_s
+  \sim q(\bm z; \theta)
+  %
+\end{align}
+%
+\noindent the resulting estimate has a high variance due to the \emph{score}
+function $\nabla_\theta \log q(\bm z; \theta)$ being roughly inversely proportional
+to the sampling likelihood $q(\bm z; \theta)$, and is thus less-than-ideal for the
+purpose of performing gradient descent.
+
+\paragraph{Reparameterization Trick}
+
+The reparameterization trick is an algebraic manipulation which simplifies the
+differentiation and avoids introducing the score function, which is the source
+of the high variance in REINFORCE.  The reparameterization is available
+whenever it is possible to reformulate the process of sampling from the
+proposal distribution $\bm z\sim q(\bm z; \theta)$ as a deterministic function
+$\bm z(\epsilon; \theta)$ of an independently sampled auxiliary variable
+$\epsilon\sim p(\epsilon)$.  Applying this substitution, the expectation
+distribution becomes independent from the differentiation parameters, meaning
+that the differentiation operator can move inside the expectation unscattered:
+%
+\begin{align}
+  %
+  \nabla_\theta \Exp_{q(\bm z; \theta)}\left[ f(\bm y, \bm z; \theta) \right] &=
+  \nabla_\theta \Exp_{p(\epsilon)}\left[ f(\bm y, \bm z(\epsilon; \theta); \theta) \right] \nonumber \\
+  %
+  &= \Exp_{p(\epsilon)}\left[ \nabla_\theta f(\bm y, \bm z(\epsilon; \theta); \theta) \right] \nonumber \\
+  %
+  &\approx \frac{1}{S} \sum_{s=1}^S \nabla_\theta f(\bm y, \bm z(\epsilon_s; \theta); \theta)\,, \epsilon_s \sim p(\epsilon)
+  %
+\end{align}
 
 \section{Bayes by Backprop} \label{sec:bayes_by_backprop}
 
+The authors propose to use Variational Inference to obtain a Bayesian treatment
+of Neural Networks.  The latent variables of a NN architecture are its weights
+$w$, and the chosen variational approximation models them with independent
+Normal distributions;  thus the variational parameters represent the Normal
+means $\mu$ and standard deviations $\sigma$---the latter is represented
+indirectly by a parameter $\rho$, which is then passed through the softplus
+function to guarantee positiveness:
+%
+\begin{align}
+  %
+  \theta &= \{ \mu, \rho \} \\
+  %
+  \sigma &= \log(1 + \exp\rho) \\
+  %
+  q(w_k; \theta) &= \mathcal{N}(w_k; \mu_k, \sigma_k^2)
+  %
+\end{align}
+
+\todo[inline]{Talk about prior!}
+
+The Normal distribution lends itself very naturally to a simple form of
+reparameterization meaning that we can exploit the reparameterization trick to
+compute better gradient estimates:
+%
+\begin{align}
+  %
+  \epsilon_k &\sim \mathcal{N}(0, 1) \\
+  %
+  w_k &= \mu_k + \sigma_k \epsilon_k
+  %
+\end{align}
+
+Aside from these few model-specific considerations, the remainder of the
+algorithm is the standard combination of SGD with VI, and is not tailored to
+the application or model at hand.  The full algorithm is thus composed of the
+following steps:
+
+\begin{algorithm}
+\caption{Stochastic Gradient Descent with Bayes-by-Backprop}
+\begin{algorithmic}[1]
+  \Repeat
+  \State Reset $\Delta_\mu \gets 0$
+  \State Reset $\Delta_\rho \gets 0$
+  \For {$s = 1, \ldots, S$}
+  \State Sample $\epsilon \gets \mathcal{N}(0, I)$
+  \State Compute $w \gets \mu + \sigma \circ \epsilon$
+  \State Compute $\nabla_w f(w, \theta)$ using standard Backpropagation
+  \State Update $\Delta_\mu \gets \Delta_\mu + \nabla_w f(w, \theta) + \nabla_\mu f(w, \theta)$
+  \State Update $\Delta_\rho \gets \Delta_\mu + \nabla_w f(w, \theta) \frac{\epsilon}{1+\exp(-\rho)} + \nabla_\rho f(w, \theta)$
+  \EndFor
+  \State Update $\mu \gets \mu - \alpha \Delta_\mu / S$
+  \State Update $\rho \gets \rho - \alpha \Delta_\rho / S$
+  \Until{Convergence}
+\end{algorithmic}
+\end{algorithm}
+
 \section{Experiments}
+
 In order to test the preformance of the Bayes by Backprob algorithm, we
 implemented a Bayesian neural network (BNN), both from scratch and with PyTorch,
 and trained it on various tasks using Bayes by Backprop. We then tested its
@@ -279,9 +431,9 @@ learning which can be interpreted as either an extension of Multi-Armed Bandits
 (with the introduction of contexts/states), or a restriction of fully
 observable Markov Decision Processes (without the agent's ability to influence
 the context/state generative process).  A CB agent iteratively receives
-a \emph{context} $\bm x\in\Xset$, and is subsequently prompted to select an
-\emph{action} from a predefined set $\bm a\in\Aset$.  The agent then receives
-a real \emph{reward} $\bm r\in\RR$ sampled from an unknown stationary
+a \emph{context} $\bm x\in\mathcal{X}$, and is subsequently prompted to select an
+\emph{action} from a predefined set $\bm a\in\mathcal{A}$.  The agent then receives
+a real \emph{reward} $\bm r\in\mathbb{R}$ sampled from an unknown stationary
 distribution $\bm r\sim P(\bm r\mid \bm x, \bm a)$, before receiving a new
 independent context and repeating the process for a given (potentially
 indetermined) amount of time steps.  The goal of the agent is that of
@@ -318,14 +470,14 @@ categories:
     a conditional model over rewards, but implement simpler action-selection
     strategies which, albeit still dependent on the model's learned uncertainty,
     provide fewer guarantees compared to Basyesian-optimal strategies.  
-
-    If the model uncertainties are appropriately learned, this type of
-    approach typically performs better than non-Bayesian ones due to the fact that
-    the explration rate becomes dependent on the model uncertainty (rather than
-    constant) and that the exploration targets the more promising actions (rather
-    than being uniform across all of them).
   %
 \end{description}
+
+Conditioned on the fact that the model uncertanties are appropriately learned,
+non-optimal Bayesian approaches typically perform better than non-Bayesian ones
+due to the fact that the exploration rate becomes dependent on the model
+uncertainty (rather than constant) and that the exploration targets the more
+promising actions (rather than being uniform across all of them).
 
 To demonstrate the fact that the uncertainty learned by Bayes-by-Backprop is
 appropriate for a pluritude of tasks, the authors propose to use Thompson
@@ -338,9 +490,10 @@ sensible approach, it is \emph{not} a Basyesian optimal strategy due to the
 fact that exploration is a byproduct of the model uncertainty, rather than an
 explicit consideration made to maximize long-term returns.}.  
 
-\paragraph{Data --- Mushroom Domain} The Mushroom Data Set\footnote{Mushroom
-Data Set: \url{https://archive.ics.uci.edu/ml/datasets/mushroom}.} contains
-8124 instances corresponding to 23 species of North American mushrooms
+\todo[inline]{Move thompson inside bayesian heuristic paragraph?}
+
+\paragraph{Data --- Mushroom Domain} The Mushroom Data Set\cite{mushroom}
+contains 8124 instances corresponding to 23 species of North American mushrooms
 described in terms of 23 discrete attributes, one of which indicates whether
 the mushroom is toxic or edible, and the other 22 of which are related to their
 shape, size, color, population, habitat, etc.
@@ -348,10 +501,10 @@ shape, size, color, population, habitat, etc.
 The context is created by concatenating the one-hot encoding of the 22
 attributes, resulting in a context $\bm x\in \{0, 1\}{}^{117}$.  The binary
 variable $\bm y\in\{0, 1\}$ is used to denote whether the mushroom is edible,
-whereas the action set $\Aset = \{0, 1\}$ indicates whether the agent will eat
-the mushroom.  The rewards are produced as follows
-(Note that, while it is possible to obtain a better reward by eating a toxic
-mushroom due to luck, in average it is better to avoid it.)
+whereas the action set $\mathcal{A} = \{0, 1\}$ indicates whether the agent
+will eat the mushroom.  The rewards are produced as follows (Note that, while
+it is possible to obtain a better reward by eating a toxic mushroom due to
+luck, in average it is better to avoid it.)
 
 \begin{center}
 \begin{tabular}{ccl}
