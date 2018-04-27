@@ -111,11 +111,11 @@ Laplace distribution, then we will have L1 regularization.
 Let $P(\bm y, \bm z)$ denote a generative model of joint observed variables
 $\bm y$ and latent variables $\bm z$, and let the conditional distribution
 $P(\bm z\mid \bm y)$ be the target of the inference.  Variational Inference
-(VI) indicates a family of optimization-based methods which approximate the
-target distribution with a parameterized model $q(\bm z; \theta)$ known as the
-\emph{variational} approximation;  In VI, the inference process is driven by
-the minimization of the Kullback-Leibler (KL) divergence between the
-variational approximation and the target conditional,
+(VI)~\cite{blei_variational_2017} indicates a family of optimization-based
+methods which approximate the target distribution with a parameterized model
+$q(\bm z; \theta)$ known as the \emph{variational} approximation;  In VI, the
+inference process is driven by the minimization of the Kullback-Leibler (KL)
+divergence between the variational approximation and the target conditional,
 %
 \begin{align}
   %
@@ -125,8 +125,9 @@ variational approximation and the target conditional,
   % &= \arg\min_\theta \KL\left( q(\bm z; \theta) \mid\mid P(\bm z) \right)
   % + \Exp_{q(\bm; \theta)}\left[ -\log P(\bm y\mid \bm z) \right] \\
   %
-  &= \arg\min_\theta \Exp_{q(\bm z; \theta)}\left[ \underbrace{ \log q(\bm z; \theta) - \log
-  P(\bm z) -\log P(\bm y\mid \bm z) }_{f(\bm y, \bm z; \theta)} \right] \label{eq:VI}
+  &= \arg\min_\theta \Exp_{q(\bm z; \theta)}\left[ \underbrace{ \log q(\bm z;
+  \theta) - \log P(\bm z) -\log P(\bm y\mid \bm z) }_{f(\bm y, \bm z; \theta)}
+  \right] \label{eq:VI}
   %
 \end{align}
 
@@ -139,26 +140,29 @@ variable is modeled independently $q(\bm z; \theta) = \prod_k q(\bm z_k;
 generative model and the variational approximation satisfy certain (non-mild)
 conjugacy conditions, the VI objective in \cref{eq:VI} can be optimized very
 efficiently via a sequence of analytical updates on the variational parameters.
+
 \paragraph{Stochastic Variational Inference}  Depending on the amount data
 which is available or required for the model at hand, it may be more efficient
 (or necessary) to use a stochastic optimization approach, whereby only
 a randomly selected subset of the variational parameters are updated at any
-given iteration; this is called Stochastic Variational Inference (SVI).
+given iteration; this is called Stochastic Variational Inference
+(SVI)~\cite{hoffman_stochastic_2013}.
 
 \paragraph{Black Box Variational Inference}  Black Box Variational Inference
-(BBVI) is a further extension to addresses the variational inference
-minimization problem problem when the conjugacy conditions are not satisfied.
-In such a situation, it is not possible to derive precise analytical updates on
-the variational parameters.  Instead, BBVI uses the gradients of the ELBO to
-update the parameters using (Stochastic) Gradient Descent.
+(BBVI)~\cite{ranganath_black_2014} is a further extension to addresses the
+variational inference minimization problem problem when the conjugacy
+conditions are not satisfied.  In such a situation, it is not possible to
+derive precise analytical updates on the variational parameters.  Instead, BBVI
+uses the gradients of the ELBO to update the parameters using (Stochastic)
+Gradient Descent.
 
 \subsection{Gradient Estimation}
 
 BBVI requires the differentiation of an objective in the form of an expectation
 whose distribution is itself dependent on the differentiation variables.  While
 it is generally possible to estimate the gradient of such an expectation using
-the likelihood ratio trick (a.k.a. REINFORCE) followed by Monte Carlo
-estimation,
+the likelihood ratio trick~\cite{williams_simple_1992} (a.k.a. REINFORCE)
+followed by Monte Carlo estimation,
 %
 \begin{align}
   %
@@ -173,9 +177,9 @@ estimation,
 \end{align}
 %
 \noindent the resulting estimate has a high variance due to the \emph{score}
-function $\nabla_\theta \log q(\bm z; \theta)$ being roughly inversely proportional
-to the sampling likelihood $q(\bm z; \theta)$, and is thus less-than-ideal for the
-purpose of performing gradient descent.
+function $\nabla_\theta \log q(\bm z; \theta)$ being roughly inversely
+proportional to the sampling likelihood $q(\bm z; \theta)$, and is thus
+substantially less-than-ideal for the purpose of performing gradient descent.
 
 \paragraph{Reparameterization Trick}
 
@@ -248,9 +252,9 @@ following steps:
   \For {$s = 1, \ldots, S$}
   \State Sample $\epsilon \gets \mathcal{N}(0, I)$
   \State Compute $w \gets \mu + \sigma \circ \epsilon$
-  \State Compute $\nabla_w f(w, \theta)$ using standard Backpropagation
-  \State Update $\Delta_\mu \gets \Delta_\mu + \nabla_w f(w, \theta) + \nabla_\mu f(w, \theta)$
-  \State Update $\Delta_\rho \gets \Delta_\mu + \nabla_w f(w, \theta) \frac{\epsilon}{1+\exp(-\rho)} + \nabla_\rho f(w, \theta)$
+  \State Compute $\nabla_w f(w; \theta)$ using standard Backpropagation
+  \State Update $\Delta_\mu \gets \Delta_\mu + \nabla_w f(w; \theta) + \nabla_\mu f(w; \theta)$
+  \State Update $\Delta_\rho \gets \Delta_\mu + \nabla_w f(w; \theta) \frac{\epsilon}{1+\exp(-\rho)} + \nabla_\rho f(w; \theta)$
   \EndFor
   \State Update $\mu \gets \mu - \alpha \Delta_\mu / S$
   \State Update $\rho \gets \rho - \alpha \Delta_\rho / S$
@@ -442,8 +446,8 @@ Agents typically start out with very limited prior knowledge concerning the
 process dynamics (the context or reward distributions).  As a consequence, good
 strategies for the maximization of the long-term expected rewards necessarily
 involve the (locally sub-optimal) sub-goal of gathering more information about
-the process itself.  This notion is know as the \emph{exploration/exploitation
-trade-off}, and is a fundamental principle which will determine the success of
+the process itself.  This notion is know as the \emph{exploration/exploitation}
+trade-off, and is a fundamental principle which will determine the success of
 a CB agent.  Viewing CB agents from the perspective of how they implement the
 exploration/exploitation trade-off, we can roughly split them into three
 categories:
@@ -563,6 +567,38 @@ Bayesian agent trained via Bayes-by-Backprop.
 
 
 \section{Conclusions}
+
+In recent decades, Neural Networks have proven themselves as a very successful
+model choice for a wide variety of regression tasks on diverse data sets.
+Arguably, this is due to the inherent feature representation learning performed
+by the hidden layers (when trained well).  Compared to other advanced ML models,
+one aspect where standard NNs are suboptimal is the virtual infeasibility of
+a complete Bayesian treatment of inference, regression or prediction.  The high
+number of model parameters and the complex nature of the dependencies between
+parameters in different layers are both factors which render a precise joint
+Bayesian treatment of the model weights not tractable.
+
+The main contribution of Blundell et al.\ is the proposal to use
+state-of-the-art approximate inference to extend NN model usage, and an
+extension of the most common training principle (gradient descent via
+backpropagation) for such purpose.  The proposed BNN model is tested on
+multiple tasks, including classification, regression and reinforcement
+learning.  The presented results support the claim that the model uncertainties
+are adequately learned and that BBVI is a feasible way to perform approximate
+Bayesian inference with NN models; The mild success that we've had in
+replicating these results gives further credit to their claims.
+
+The proposed training framework is in essence a combination of multiple
+well-established ML principles, and as such it respectively enjoys and suffers
+from their known advantages and pitfalls: Backpropagation is very sensitive to
+hyperparameters, and generally suffers from convergence to multiple local
+optima; SGD allows the training to handle much bigger data sets than the
+non-SGD version of NN training; The MC estimation of the gradients can be
+parallelized straightforwardly, thus reducing (given sufficient hardware
+resources) the absolute training time required; Finally, VI increases the
+number of training parameters, which also impacts the number of training
+iterations typically necessary to convergence.
+
 
 \bibliographystyle{plain}
 \bibliography{references} 
