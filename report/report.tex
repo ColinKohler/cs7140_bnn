@@ -79,7 +79,7 @@ using gradient descent to optimize these weights with respect to some loss
 function. 
 
 We will formalize this notition by defining a neural network as a probablistic
-model, $P(y|x,w)$ where $x \in \mathcal{R}^P, y \in \mathcal{Y}$. Using this 
+model, $P(y|x,w)$ where $x \in \RR^P, y \in \mathcal{Y}$. Using this 
 model, we can view neural networks as a function which assigns a probability
 to each possible outcome $y$ given some input $x$ through the use of the set
 of weights $w$. These weights are still learned through the use of gradient 
@@ -105,7 +105,7 @@ Laplace distribution, then we will have L1 regularization.
 
 \subsection{Black Box Variational Inference}
 
-\section{Bayes by Backprop}\label{sec:bayes_by_backprop}
+\section{Bayes by Backprop} \label{sec:bayes_by_backprop}
 
 \section{Experiments}
 In order to test the preformance of the Bayes by Backprob algorithm, we
@@ -154,7 +154,7 @@ hyperparameters, we did not have the time or computational resources to run this
 costly operation and resorted to hand optimizing the hyperparameters instead.
 For our BNN, we ended up using a learning rate of $0.1$, a minibatch size of 
 $128$, and averaged over $1$ sample. We used the spike-slab prior detailed in
-section \ref{bayes_by_backprop} with $\pi = 0.25$, $\sigma_1 = 0.75$, and 
+section \ref{sec:bayes_by_backprop} with $\pi = 0.25$, $\sigma_1 = 0.75$, and 
 $\sigma_2 = 0.1$. For the simple feedforward network and the network with 
 dropout, we used a learning rate of $0.001$ and a minibatch size of $128$.
 The dropout rate was the standard $0.5$. Although we tested networks of various
@@ -162,9 +162,61 @@ sizes, the results listed below come from training two-layer networks with
 $400$ hidden units in each layer.
 
 \paragraph{Results}
+The first experiment we preformed was simply to train and test our BNN on the 
+MNIST dataset and compare the results to that of \cite{blarg}. This allowed us
+to ensure that our implemenation of both the BNN and the simple multilayer
+perceptrons (MLPs) were correct and got comparable results. Figure
+\ref{fig:mnist_test_error} shows the test error for the three different models
+detailed above: a BNN, a standard MLP, and a MLP with dropout. While our 
+results are not identical to that of \cite{blarg}, they are very similar. 
 
-\subsection{Regression}
-\paragraph{Data --- Synthetic Data}
+In both plots the vanilla MLP is the first to converge and then hovers around
+the same test error for the rest of the training epochs. Both the MLP with
+dropout and the BNN eventually get a lower test error than the standard MLP
+with our BNN taking a significant amount more time than the BNN in 
+\cite{blarg}. This along with the overall lower test error in the plot from
+\cite {blarg} can be explained due to the original work using cross validaton
+to opimize the hyperparameters whereas our hyperparameters are certainly not
+optimal. The last thing of note here, is that while out BNN never got a lower
+test error than that of the MLP with dropout, Blundell et al. had to run their
+BNN for $400$ epochs before this occured. As our BNN showed no sign of 
+overfitting at $200$ epochs we can expect it would eventually out preform the 
+MLP with dropout given enough time.
+
+In our next experiment we wanted to ensure that the BNN was actually learning 
+a distribution for each weight in the network and was not simply converging to
+a mean value with a standard deviation close to zero. In order to do this we
+collected the weights for all the units in the networks, sampling weights 
+from the variational posterior in the BNN and using the test weights for the 
+MLP with dropout, and then created the density histogram in Figure 
+\ref{fig:mnist_weight_density}. From this histogram we can see that our BNN
+has both the widest range of weights and is also the least weights centered at
+zero compared to the two other models. This confirmed that the BNN was learning
+a distribution over weights and also confirmed that our implementation was 
+correct as it closely mimics the result in \cite{blarg}.
+
+\begin{figure}
+  %
+  \centering\includegraphics[width=.45\textwidth]{figures/test_error_compare.png}
+  \centering\includegraphics[width=.45\textwidth]{figures/test_error_compare_paper.png}
+  %
+  \caption{Left: Test error on MNIST using our implementation (2-layers of 400 units).
+  Right: Test error on MNIST as detailed in \cite{blarg} (2-layers of 1200 units).}
+  \label{fig:mnist_test_error}
+  %
+\end{figure}
+
+\begin{figure}
+  %
+  \centering\includegraphics[width=.6\textwidth]{figures/weight_density_compare.png}
+  %
+  \caption{Histogram of the trained weights of the three types of network we
+  compared in Figure \ref{fig:mnist_test_error}}
+  \label{fig:mnist_weight_density}
+  %
+\end{figure}
+
+\subsection{Regression --- Synthetic Data}
 \paragraph{Results}
 
 \subsection{Contextual Bandits}
