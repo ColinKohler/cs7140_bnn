@@ -65,7 +65,7 @@ increase. The second technique, regularization, involves modifying the loss
 function by adding a penalty term. Through the addition of this penalty, the
 network is forced to learn a more general model of the data thereby avoiding
 overfitting. In this report we will implement and test a regularization 
-technique known as \textit{Bayes by Backprop}\cite{} which utilizes 
+technique known as \textit{Bayes by Backprop}\cite{blundell} which utilizes 
 variational Bayesian learning to introduce uncertainty in the weight of the 
 neural network.
 
@@ -139,7 +139,7 @@ lead to a unstable network.
 
 \subsection{Classification --- MNIST}
 We trained and tested networks of various sizes on the MNIST digits
-dataset\cite{} which consists of $70,000$ images of size 28 by 28 pixels.
+dataset\cite{mnist} which consists of $70,000$ images of size 28 by 28 pixels.
 As we were comparing our results to the paper which introduced Bayes by 
 Backprop, we followed the same preprocessing steps as they did and 
 preprocessed the images by divinging the pixel values by $126$. The networks
@@ -163,19 +163,19 @@ $400$ hidden units in each layer.
 
 \paragraph{Results}
 The first experiment we preformed was simply to train and test our BNN on the 
-MNIST dataset and compare the results to that of \cite{blarg}. This allowed us
+MNIST dataset and compare the results to that of \cite{blundell}. This allowed us
 to ensure that our implemenation of both the BNN and the simple multilayer
 perceptrons (MLPs) were correct and got comparable results. Figure
 \ref{fig:mnist_test_error} shows the test error for the three different models
 detailed above: a BNN, a standard MLP, and a MLP with dropout. While our 
-results are not identical to that of \cite{blarg}, they are very similar. 
+results are not identical to that of \cite{blundell}, they are very similar. 
 
 In both plots the vanilla MLP is the first to converge and then hovers around
 the same test error for the rest of the training epochs. Both the MLP with
 dropout and the BNN eventually get a lower test error than the standard MLP
 with our BNN taking a significant amount more time than the BNN in 
-\cite{blarg}. This along with the overall lower test error in the plot from
-\cite {blarg} can be explained due to the original work using cross validaton
+\cite{blundell}. This along with the overall lower test error in the plot from
+\cite {blundell} can be explained due to the original work using cross validaton
 to opimize the hyperparameters whereas our hyperparameters are certainly not
 optimal. The last thing of note here, is that while out BNN never got a lower
 test error than that of the MLP with dropout, Blundell et al. had to run their
@@ -193,7 +193,7 @@ MLP with dropout, and then created the density histogram in Figure
 has both the widest range of weights and is also the least weights centered at
 zero compared to the two other models. This confirmed that the BNN was learning
 a distribution over weights and also confirmed that our implementation was 
-correct as it closely mimics the result in \cite{blarg}.
+correct as it closely mimics the result in \cite{blundell}.
 
 \begin{figure}
   %
@@ -201,7 +201,7 @@ correct as it closely mimics the result in \cite{blarg}.
   \centering\includegraphics[width=.45\textwidth]{figures/test_error_compare_paper.png}
   %
   \caption{Left: Test error on MNIST using our implementation (2-layers of 400 units).
-  Right: Test error on MNIST as detailed in \cite{blarg} (2-layers of 1200 units).}
+  Right: Test error on MNIST as detailed in \cite{blundell} (2-layers of 1200 units).}
   \label{fig:mnist_test_error}
   %
 \end{figure}
@@ -217,7 +217,52 @@ correct as it closely mimics the result in \cite{blarg}.
 \end{figure}
 
 \subsection{Regression --- Synthetic Data}
-\paragraph{Results}
+Moving on from classification, we wanted to ensure that our BNN implementation 
+was able to work on a regression task in addition to the classification task
+detailed above. Once again following the work done in \cite{blundell}, we 
+generated training data from the following non-linear function:
+\begin{align*}
+  y = x + 0.3 \sin(2\pi (x &+ \epsilon)) + 0,3 \sin(4\pi (x + \epsilon)) + \epsilon \\
+  \epsilon &\sim \mathcal{N}(0, 0.02)
+\end{align*}
+Figure \ref{fig:reg_syth_data} shows this function both with and without noise.
+Note that we only generated data between $x=0.0$ and $x=0.5$.
+
+\begin{figure}
+  %
+  \centering\includegraphics[width=.45\textwidth]{figures/regression_curve.png}
+  \centering\includegraphics[width=.45\textwidth]{figures/regression_curve_with_noise.png}
+  %
+  \caption{Left: Noise free non-linear function we generated test data from.
+  Right: Noisy non-linear function we used as training data.}
+  \label{fig:reg_syth_data}
+  %
+\end{figure}
+
+\paragraph{Results} 
+We trained two different networks on the synthetic data detailed above: our BNN
+and a simple MLP without dropout. Both of these networks consisted of two-
+layers of $100$ ReLUs and were trained using SGD to minimize L1 loss. Figure
+\ref{fig:reg_extended} shows the functions generated by these two networks
+once they were trained for $100$ epochs. It is important to note here that
+while both networks were able to fit the function well from $x=0.0$ to $x=0.5$,
+the BNN has a better idea of the uncertainty of the data outside that range.
+\todo[inline]{Expand on this once these plots change}
+This experiment nicely illustrates our earlier point that a standard neural
+network can be overly confident about the uncertainity in the training data 
+whereas our BNN is able to realize it is unsure about the value of the 
+function outside the training data and perfers to let the function wander.
+
+\begin{figure}
+  %
+  \centering\includegraphics[width=.45\textwidth]{figures/reg_bnn_extended.png}
+  \centering\includegraphics[width=.45\textwidth]{figures/reg_mlp_extended.png}
+  %
+  \caption{Left: Regression with synthetic training data with BNN.
+  Right: Regression with synthetic training data with MLP.}
+  \label{fig:reg_extended}
+  %
+\end{figure}
 
 \subsection{Contextual Bandits}
 
@@ -353,11 +398,14 @@ Bayesian agent trained via Bayes-by-Backprop.
   %
   \caption{Cumulative regret obtained by non-Bayesian CB agents, and the BNN
   agent trained via Bayes-by-Backprop.  Figure taken directly
-  from~\cite{blarg}.}\label{fig:cb_cumregret}
+  from~\cite{blundell}.}\label{fig:cb_cumregret}
   %
 \end{figure}
 
 
 \section{Conclusions}
+
+\bibliographystyle{plain}
+\bibliography{references} 
 
 \end{document}
