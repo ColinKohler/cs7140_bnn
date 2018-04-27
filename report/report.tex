@@ -70,7 +70,7 @@ neural network.
 
 \subsection{Artificial Neural Networks}
 Before discussing Bayes by Backprop, we must take a slight deviation from
-the norm to view neural networks in a more probablistic manner. A neural 
+the norm to view neural networks (NN) in a more probablistic manner. A neural 
 network is typically viewed as a collection of connected units, each with 
 their own weight, which takes some input signal and produces an output
 signal by passing it through these units. Learning is then acheived by 
@@ -110,10 +110,10 @@ Laplace distribution, then we will have L1 regularization.
 
 Let $P(\bm y, \bm z)$ denote a generative model of joint observed variables
 $\bm y$ and latent variables $\bm z$, and let the conditional distribution
-$P(\bm z\mid \bm y)$ be the target of the inference.  Variational Inference
+$P(\bm z\mid \bm y)$ be the target of the inference.  Variational inference
 (VI) indicates a family of optimization-based methods which approximate the
 target distribution with a parameterized model $q(\bm z; \theta)$ known as the
-\emph{variational} approximation;  In VI, the inference process is driven by
+\emph{variational} approximation. In VI, the inference process is driven by
 the minimization of the Kullback-Leibler (KL) divergence between the
 variational approximation and the target conditional,
 %
@@ -202,8 +202,8 @@ that the differentiation operator can move inside the expectation unscattered:
 
 \section{Bayes by Backprop} \label{sec:bayes_by_backprop}
 
-The authors propose to use Variational Inference to obtain a Bayesian treatment
-of Neural Networks.  The latent variables of a NN architecture are its weights
+The authors propose to use variational inference to obtain a Bayesian treatment
+of neural networks.  The latent variables of a NN architecture are its weights
 $w$, and the chosen variational approximation models them with independent
 Normal distributions;  thus the variational parameters represent the Normal
 means $\mu$ and standard deviations $\sigma$---the latter is represented
@@ -315,6 +315,18 @@ The dropout rate was the standard $0.5$. Although we tested networks of various
 sizes, the results listed below come from training two-layer networks with
 $400$ hidden units in each layer.
 
+\begin{figure}[H]
+  %
+  \centering\includegraphics[width=.45\textwidth]{figures/test_error_compare.png}
+  \centering\includegraphics[width=.45\textwidth]{figures/test_error_compare_paper.png}
+  %
+  \caption{Left: Test error on MNIST using our implementation (2-layers of 400 units).
+  Right: Test error on MNIST as detailed in \cite{blundell} (2-layers of 1200 units).}
+  \label{fig:mnist_test_error}
+  %
+\end{figure}
+ 
+
 \paragraph{Results}
 The first experiment we preformed was simply to train and test our BNN on the 
 MNIST dataset and compare the results to that of \cite{blundell}. This allowed us
@@ -344,21 +356,10 @@ collected the weights for all the units in the networks, sampling weights
 from the variational posterior in the BNN and using the test weights for the 
 MLP with dropout, and then created the density histogram in Figure 
 \ref{fig:mnist_weight_density}. From this histogram we can see that our BNN
-has both the widest range of weights and is also the least weights centered at
-zero compared to the two other models. This confirmed that the BNN was learning
-a distribution over weights and also confirmed that our implementation was 
-correct as it closely mimics the result in \cite{blundell}.
-
-\begin{figure}
-  %
-  \centering\includegraphics[width=.45\textwidth]{figures/test_error_compare.png}
-  \centering\includegraphics[width=.45\textwidth]{figures/test_error_compare_paper.png}
-  %
-  \caption{Left: Test error on MNIST using our implementation (2-layers of 400 units).
-  Right: Test error on MNIST as detailed in \cite{blundell} (2-layers of 1200 units).}
-  \label{fig:mnist_test_error}
-  %
-\end{figure}
+has both the widest range of weights and also the least weights centered at
+zero when compared to the two other models. This confirmed that the BNN was
+learning a distribution over weights and also confirmed that our 
+implementation was correct as it closely mimics the result in \cite{blundell}.
 
 \begin{figure}
   %
@@ -382,7 +383,7 @@ generated training data from the following non-linear function:
 Figure \ref{fig:reg_syth_data} shows this function both with and without noise.
 Note that we only generated data between $x=0.0$ and $x=0.5$.
 
-\begin{figure}
+\begin{figure}[H]
   %
   \centering\includegraphics[width=.45\textwidth]{figures/regression_curve.png}
   \centering\includegraphics[width=.45\textwidth]{figures/regression_curve_with_noise.png}
@@ -395,8 +396,8 @@ Note that we only generated data between $x=0.0$ and $x=0.5$.
 
 \paragraph{Results} 
 We trained two different networks on the synthetic data detailed above: our BNN
-and a simple MLP without dropout. Both of these networks consisted of two-
-layers of $100$ ReLUs and were trained using SGD to minimize L1 loss. Figure
+and a simple MLP without dropout. Both of these networks consisted of two-layers 
+of $100$ ReLUs and were trained using SGD to minimize L1 loss. Figure
 \ref{fig:reg_extended} shows the functions generated by these two networks
 once they were trained for $50$ epochs. We can see from this figure that the
 MLP will always predict the same output over mutliple test runs whereas the BNN
