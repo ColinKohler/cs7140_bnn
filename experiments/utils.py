@@ -14,9 +14,6 @@ def load_mnist():
     X = mnist.data.astype(np.float32) / 126.
     Y = mnist.target.astype(np.uint8)
 
-    # X = (X-X.mean()) / X.std()
-    # X /= X.max()
-
     # converts labels into "indicator" vectors
     I = np.eye(10, dtype=np.float32)
     Y = I[Y]
@@ -204,11 +201,3 @@ def logsumexp(value, dim=None, keepdim=False):
             return m + math.log(sum_exp)
         else:
             return m + torch.log(sum_exp)
-
-
-# TODO should this and/or the loss be out or in models?
-# # Evaluate the given model's error on the given data
-# def mnist_error(params, X, Y, forward):
-#     n, _ = X.shape
-#     output, _ = forward(params, X)
-#     return (output.argmax(axis=1) != Y.argmax(axis=1)).sum() / n
