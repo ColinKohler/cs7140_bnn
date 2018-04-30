@@ -110,7 +110,7 @@ def run_mnist_classification(config):
     losses = list()
     np.set_printoptions(formatter={'float_kind':lambda x: "%.2f" % x})
     for epoch in range(config.epochs):
-        batch_iterator = utils.create_batch_iterator(X_train, Y_train, config.batch_size)
+        batch_iterator = utils.create_batch_iterator(config.batch_size, X_train, Y_train)
         # print(f'# Epoch:{epoch:>3}')
         with tqdm(total=N) as pbar:
             for i, (X_batch, Y_batch) in enumerate(batch_iterator):

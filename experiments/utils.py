@@ -119,9 +119,6 @@ def softmax(x):
     return np.exp(x - logsumexp(x, axis=1, keepdims=True))
 
 
-def identity(x):
-    return x
-
 # Simple identity activation function
 def identity(x):
     return x
