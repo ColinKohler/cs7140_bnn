@@ -13,9 +13,12 @@ def load_mnist():
     X = mnist.data.astype(np.float32) / 126.
     Y = mnist.target.astype(np.uint8)
 
+    # X = (X-X.mean()) / X.std()
+    # X /= X.max()
+
     # converts labels into "indicator" vectors
-    #I = np.eye(10, dtype=np.float32)
-    #Y = I[Y]
+    I = np.eye(10, dtype=np.float32)
+    Y = I[Y]
 
     train_split = 20000. / mnist.data.shape[0]
     X_train, X_test, Y_train, Y_test = model_selection.train_test_split(X, Y, test_size=train_split)
@@ -45,7 +48,6 @@ def load_mnist_torch(batch_size):
 
     return N, D, C, train_loader, val_loader, test_loader
 
-
 # Generate dummy regression data acourding to the following function:
 # y = x + 0.3 * sin(2*pi * (x + eps)) + 0.3 * sin(4*pi * (x + eps)) + eps
 def generate_regression_curve_data(x_min=0, x_max=0.5, num_samples=1000):
@@ -56,14 +58,37 @@ def generate_regression_curve_data(x_min=0, x_max=0.5, num_samples=1000):
 
     return x, y, y_true
 
-def create_batch_iterator(X, Y, batch_size):
-    X, Y = utils.shuffle(X,Y)
 
-    i = 0
-    while i < X.shape[0]:
-        X_batch, Y_batch = X[i:i+batch_size], Y[i:i+batch_size]
-        i += batch_size
-        yield X_batch, Y_batch
+def load_mushroom():
+    with open('datasets/agaricus-lepiota.data') as f:
+        data = np.array([line.rstrip().split(',') for line in f.readlines()])
+
+    n, d = data.shape
+
+    fields = [list(set(data[:, di])) for di in range(d)]
+    e = sum(len(f) for f in fields)
+    Z = np.zeros((n, e))
+
+    offset = 0
+    for di in range(d):
+        field = list(set(data[:, di]))
+        for ni in range(n):
+            ei = offset + field.index(data[ni, di])
+            Z[ni, ei] = 1
+        offset += len(field)
+    # NOTE Y is 1 when edible
+    Y = Z[:, 0].astype(np.int32)
+    return Z, Y
+
+
+import more_itertools as mitt
+
+
+def create_batch_iterator(batch_size, *data):
+    data = utils.shuffle(*data)
+    ndata = data[0].shape[0]
+    for idxs in mitt.chunked(range(ndata), batch_size):
+        yield (X[idxs] for X in data)
 
 # logistic activation function
 def logistic(x):
@@ -81,6 +106,10 @@ def softplus(x):
 # softmax output actionation
 def softmax(x):
     return np.exp(x - logsumexp(x, axis=1, keepdims=True))
+
+
+def identity(x):
+    return x
 
 # TODO should this and/or the loss be out or in models?
 # # Evaluate the given model's error on the given data
